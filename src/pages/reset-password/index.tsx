@@ -9,8 +9,9 @@ import { useFormState } from "../../hooks/useFormState";
 import { useFormValidation, commonRules } from "../../hooks/useFormValidation";
 import { useDebounce } from "../../hooks/useDebounce";
 import { useFormReset } from "../../hooks/useFormReset";
+import { AuthError } from "@supabase/supabase-js";
 
-interface ResetPasswordForm {
+interface ResetPasswordForm extends Record<string, string> {
   email: string;
 }
 
@@ -64,8 +65,12 @@ export default function ResetPassword() {
 
       setSuccess("Password reset instructions have been sent to your email.");
       resetForm();
-    } catch (error: any) {
-      handleError(error);
+    } catch (error: unknown) {
+      if (error instanceof AuthError || error instanceof Error) {
+        handleError(error);
+      } else {
+        handleError(null, "An unexpected error occurred while requesting password reset. Please try again.");
+      }
     }
   };
 

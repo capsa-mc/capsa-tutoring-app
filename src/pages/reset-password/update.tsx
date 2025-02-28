@@ -11,8 +11,9 @@ import { useFormValidation, commonRules } from "../../hooks/useFormValidation";
 import { usePasswordValidation } from "../../hooks/usePasswordValidation";
 import { useDebounce } from "../../hooks/useDebounce";
 import { useFormReset } from "../../hooks/useFormReset";
+import { AuthError } from "@supabase/supabase-js";
 
-interface UpdatePasswordForm {
+interface UpdatePasswordForm extends Record<string, string> {
   password: string;
   confirmPassword: string;
 }
@@ -27,30 +28,17 @@ export default function UpdatePassword() {
   const debouncedConfirmPassword = useDebounce(formData.confirmPassword);
 
   const { loading, message, messageType, setFormState, handleError, setSuccess } = useFormState();
-  const { validatePassword, getPasswordRequirements } = usePasswordValidation();
+  const { validatePassword, getPasswordRequirements } = usePasswordValidation({
+    minLength: 8,
+    requireUppercase: true,
+    requireLowercase: true,
+    requireNumbers: true,
+    requireSpecialChars: true,
+  });
   const router = useRouter();
 
   const { errors, validateForm, validateField } = useFormValidation({
-    password: [
-      commonRules.required(),
-      commonRules.minLength(8),
-      {
-        test: (value) => /[A-Z]/.test(value),
-        message: "Must contain at least one uppercase letter",
-      },
-      {
-        test: (value) => /[a-z]/.test(value),
-        message: "Must contain at least one lowercase letter",
-      },
-      {
-        test: (value) => /[0-9]/.test(value),
-        message: "Must contain at least one number",
-      },
-      {
-        test: (value) => /[^A-Za-z0-9]/.test(value),
-        message: "Must contain at least one special character",
-      },
-    ],
+    password: [commonRules.required()],
     confirmPassword: [
       commonRules.required(),
       {
@@ -62,37 +50,59 @@ export default function UpdatePassword() {
 
   // Validate on debounced values
   useEffect(() => {
-    validateField("password", debouncedPassword);
-    // Also validate confirm password when password changes
-    if (formData.confirmPassword) {
+    if (debouncedPassword) {
+      validateField("password", debouncedPassword);
+      const validation = validatePassword(debouncedPassword);
+      if (!validation.isValid) {
+        setFormState({
+          loading: false,
+          message: validation.errors[0],
+          messageType: "error",
+        });
+      }
+    }
+  }, [debouncedPassword, validateField, validatePassword, setFormState]);
+
+  // Validate confirm password
+  useEffect(() => {
+    if (debouncedPassword && formData.confirmPassword) {
       validateField("confirmPassword", formData.confirmPassword);
     }
   }, [debouncedPassword, formData.confirmPassword, validateField]);
 
+  // Validate confirm password on change
   useEffect(() => {
-    validateField("confirmPassword", debouncedConfirmPassword);
+    if (debouncedConfirmPassword) {
+      validateField("confirmPassword", debouncedConfirmPassword);
+    }
   }, [debouncedConfirmPassword, validateField]);
 
+  // Check access token
   useEffect(() => {
-    // Check if we have the access token in the URL
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get("access_token");
-    
-    if (!accessToken) {
-      handleError(null, "This password reset link is invalid or has expired. Please request a new one.");
-    }
+    const checkAccessToken = () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get("access_token");
+      
+      if (!accessToken) {
+        handleError(null, "This password reset link is invalid or has expired. Please request a new one.");
+      }
+    };
+
+    checkAccessToken();
   }, [handleError]);
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormState({ loading: true, message: "", messageType: "" });
 
-    // Validate form
+    // Validate form and password
     const isValid = validateForm(formData);
-    if (!isValid) {
+    const validation = validatePassword(formData.password);
+
+    if (!isValid || !validation.isValid) {
       setFormState({
         loading: false,
-        message: "Please fix the errors below.",
+        message: !isValid ? "Please fix the errors below." : validation.errors[0],
         messageType: "error",
       });
       return;
@@ -119,8 +129,12 @@ export default function UpdatePassword() {
       setTimeout(() => {
         router.push("/login");
       }, 2000);
-    } catch (error: any) {
-      handleError(error);
+    } catch (error: unknown) {
+      if (error instanceof AuthError || error instanceof Error) {
+        handleError(error);
+      } else {
+        handleError(null, "An unexpected error occurred while updating your password. Please try again.");
+      }
     }
   };
 

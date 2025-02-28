@@ -8,6 +8,7 @@ import { Input, Button, Message } from "../components/AuthCard";
 import { Form } from "../components/Form";
 import { useFormState } from "../hooks/useFormState";
 import { useFormValidation, commonRules } from "../hooks/useFormValidation";
+import { AuthError } from "@supabase/supabase-js";
 
 export default function Login() {
   const [email, setEmail] = useState<string>("");
@@ -58,8 +59,8 @@ export default function Login() {
       }
 
       if (data?.user) {
-        // Check if profile exists
-        const { data: profileData, error: profileError } = await supabase
+        // Check if profile exists and create if it doesn't
+        const { error: profileError } = await supabase
           .from("profile")
           .select("*")
           .eq("id", data.user.id)
@@ -86,8 +87,12 @@ export default function Login() {
           router.push(returnUrl);
         }, 1000);
       }
-    } catch (error: any) {
-      handleError(error);
+    } catch (error: unknown) {
+      if (error instanceof AuthError || error instanceof Error) {
+        handleError(error);
+      } else {
+        handleError(null, "An unexpected error occurred during login. Please try again.");
+      }
     }
   };
 
@@ -132,7 +137,7 @@ export default function Login() {
 
         <div className="mt-6 space-y-4">
           <p className="text-center text-sm text-gray-600">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
               Create one here
             </Link>

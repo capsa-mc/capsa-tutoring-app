@@ -11,8 +11,9 @@ import { useFormValidation, commonRules } from "../hooks/useFormValidation";
 import { usePasswordValidation } from "../hooks/usePasswordValidation";
 import { useDebounce } from "../hooks/useDebounce";
 import { useFormReset } from "../hooks/useFormReset";
+import { AuthError } from "@supabase/supabase-js";
 
-interface RegisterForm {
+interface RegisterForm extends Record<string, string> {
   email: string;
   password: string;
 }
@@ -89,7 +90,7 @@ export default function Register() {
     }
 
     try {
-      const { data: user, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
       });
@@ -106,8 +107,12 @@ export default function Register() {
       setSuccess("Registration successful! Please check your email for verification.");
       resetForm();
       
-    } catch (error: any) {
-      handleError(error);
+    } catch (error: unknown) {
+      if (error instanceof AuthError || error instanceof Error) {
+        handleError(error);
+      } else {
+        handleError(null, "An unexpected error occurred during registration. Please try again.");
+      }
     }
   };
 

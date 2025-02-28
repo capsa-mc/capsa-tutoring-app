@@ -13,26 +13,28 @@ export interface ValidationErrors {
   [key: string]: string[];
 }
 
-export const useFormValidation = (rules: ValidationRules) => {
+export const useFormValidation = <T extends Record<string, string>>(rules: {
+  [K in keyof T]?: ValidationRule[];
+}) => {
   const [errors, setErrors] = useState<ValidationErrors>({});
 
-  const validateField = (name: string, value: string): string[] => {
+  const validateField = (name: keyof T, value: string): string[] => {
     if (!rules[name]) return [];
 
-    return rules[name]
+    return rules[name]!
       .map(rule => (!rule.test(value) ? rule.message : ""))
       .filter(Boolean);
   };
 
-  const validateForm = (formData: { [key: string]: string }): boolean => {
+  const validateForm = (formData: T): boolean => {
     const newErrors: ValidationErrors = {};
     let isValid = true;
 
-    Object.keys(rules).forEach(fieldName => {
-      const value = formData[fieldName] || "";
+    (Object.keys(rules) as Array<keyof T>).forEach(fieldName => {
+      const value = formData[fieldName];
       const fieldErrors = validateField(fieldName, value);
       if (fieldErrors.length > 0) {
-        newErrors[fieldName] = fieldErrors;
+        newErrors[fieldName as string] = fieldErrors;
         isValid = false;
       }
     });

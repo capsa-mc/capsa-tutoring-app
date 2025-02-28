@@ -1,15 +1,18 @@
 import { useState } from "react";
+import { PostgrestError } from "@supabase/supabase-js";
+
+type MessageType = "error" | "success" | "";
 
 interface FormState {
   loading: boolean;
   message: string;
-  messageType: "error" | "success" | "";
+  messageType: MessageType;
 }
 
 interface UseFormStateReturn extends FormState {
   setFormState: (state: Partial<FormState>) => void;
   resetFormState: () => void;
-  handleError: (error: any, defaultMessage?: string) => void;
+  handleError: (error: Error | PostgrestError | null, customMessage?: string) => void;
   setSuccess: (message: string) => void;
 }
 
@@ -33,11 +36,11 @@ export function useFormState(initialState?: Partial<FormState>): UseFormStateRet
     });
   };
 
-  const handleError = (error: any, defaultMessage = "An unexpected error occurred. Please try again.") => {
-    console.error("Form error:", error);
+  const handleError = (error: Error | PostgrestError | null, customMessage?: string) => {
+    console.error("Error:", error);
     setFormState({
       loading: false,
-      message: error?.message || defaultMessage,
+      message: customMessage || error?.message || "An unexpected error occurred",
       messageType: "error",
     });
   };

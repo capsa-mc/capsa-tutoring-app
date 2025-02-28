@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
-import styles from '../../styles/register.module.css';
+import Layout from '../../components/Layout';
+import AuthCard from '../../components/AuthCard';
+import { Message } from '../../components/AuthCard';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { useFormState } from '../../hooks/useFormState';
+import { AuthError } from '@supabase/supabase-js';
 
 export default function AuthCallback() {
   const router = useRouter();
-  const [message, setMessage] = useState('Verifying your email...');
-  const [error, setError] = useState<string | null>(null);
+  const { message, messageType, handleError, setSuccess } = useFormState();
 
   useEffect(() => {
     const handleEmailConfirmation = async () => {
@@ -15,18 +19,17 @@ export default function AuthCallback() {
         const hash = window.location.hash;
         
         if (!hash) {
-          setError('No verification token found.');
+          handleError(null, 'No verification token found.');
           return;
         }
 
         // Parse the hash to get the access token
         const hashParams = new URLSearchParams(hash.substring(1));
         const accessToken = hashParams.get('access_token');
-        const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type');
 
         if (!accessToken || !type) {
-          setError('Invalid verification link.');
+          handleError(null, 'Invalid verification link.');
           return;
         }
 
@@ -39,8 +42,8 @@ export default function AuthCallback() {
           }
 
           if (user) {
-            // Check if profile exists
-            const { data: profile, error: profileError } = await supabase
+            // Check if profile exists and create if it doesn't
+            const { error: profileError } = await supabase
               .from('profile')
               .select('*')
               .eq('id', user.id)
@@ -54,10 +57,11 @@ export default function AuthCallback() {
 
               if (insertError) {
                 console.error('Error creating profile:', insertError);
+                throw insertError;
               }
             }
 
-            setMessage('Email verified successfully! Redirecting...');
+            setSuccess('Email verified successfully! Redirecting...');
             
             // Redirect to profile page after a short delay
             setTimeout(() => {
@@ -65,35 +69,43 @@ export default function AuthCallback() {
             }, 2000);
           }
         }
-      } catch (err) {
-        console.error('Error during email confirmation:', err);
-        setError('An error occurred during email verification. Please try again.');
+      } catch (error: unknown) {
+        console.error('Error during email confirmation:', error);
+        if (error instanceof AuthError || error instanceof Error) {
+          handleError(error, 'An error occurred during email verification. Please try again.');
+        } else {
+          handleError(null, 'An unexpected error occurred during email verification. Please try again.');
+        }
       }
     };
 
     handleEmailConfirmation();
-  }, [router]);
+  }, [router, handleError, setSuccess]);
 
   return (
-    <div className={styles.container}>
-      <h1>Email Verification</h1>
-      {error ? (
-        <div className={`${styles.message} ${styles.error}`}>
-          {error}
-          <p className={styles.linkText}>
-            <button
-              onClick={() => router.push('/login')}
-              className={styles.button}
-            >
-              Go to Login
-            </button>
-          </p>
-        </div>
-      ) : (
-        <div className={`${styles.message} ${styles.success}`}>
-          {message}
-        </div>
-      )}
-    </div>
+    <Layout>
+      <AuthCard title="Email Verification">
+        {!message ? (
+          <div className="flex justify-center items-center py-8">
+            <LoadingSpinner size="lg" />
+            <span className="ml-3 text-gray-600">Verifying your email...</span>
+          </div>
+        ) : (
+          <>
+            <Message message={message} type={messageType as "error" | "success"} />
+            {messageType === "error" && (
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => router.push('/login')}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                >
+                  Go to Login
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </AuthCard>
+    </Layout>
   );
 } 
