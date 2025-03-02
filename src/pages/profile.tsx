@@ -52,8 +52,8 @@ export default function Profile() {
     last_name: [commonRules.required("Last name is required")],
     group: [commonRules.required("Grade Group is required")],
     apply_role: [commonRules.required("Role application is required")],
-    student_email: [commonRules.email("Please enter a valid student email")],
-    parent_email: [commonRules.email("Please enter a valid parent email")],
+    student_email: [commonRules.email("Please enter a valid student email if provided")],
+    parent_email: [commonRules.email("Please enter a valid parent email if provided")],
   });
 
   useEffect(() => {

@@ -26,12 +26,16 @@ export interface Pair {
   updated_at: string;
 }
 
+export type SessionType = "Mix" | "Onsite" | "Remote";
+
 export interface Session {
   id: string;
   pair_id: string;
   start_time: string;
   end_time: string;
   status: "scheduled" | "completed" | "cancelled";
+  session_type: SessionType;
+  location: string;
   notes?: string;
   created_at: string;
   updated_at: string;
