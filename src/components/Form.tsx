@@ -26,10 +26,18 @@ export function FormGroup({ children, className = "space-y-1" }: FormGroupProps)
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string;
   error?: string;
+  helperText?: string;
   options: Array<{ value: string; label: string }>;
 }
 
-export function Select({ label, error, options, className = "", ...props }: SelectProps) {
+export function Select({ 
+  label, 
+  error, 
+  helperText,
+  options, 
+  className = "", 
+  ...props 
+}: SelectProps) {
   return (
     <FormGroup>
       <label htmlFor={props.id} className="block text-sm font-medium text-gray-700">
@@ -37,7 +45,9 @@ export function Select({ label, error, options, className = "", ...props }: Sele
       </label>
       <select
         {...props}
-        className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md ${className}`}
+        className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md ${
+          error ? "border-red-300" : ""
+        } ${className}`}
         defaultValue={props.value || ""}
       >
         {options.map((option) => (
@@ -47,6 +57,7 @@ export function Select({ label, error, options, className = "", ...props }: Sele
         ))}
       </select>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {helperText && !error && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
     </FormGroup>
   );
 }
@@ -54,9 +65,16 @@ export function Select({ label, error, options, className = "", ...props }: Sele
 interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label: string;
   error?: string;
+  helperText?: string;
 }
 
-export function TextArea({ label, error, className = "", ...props }: TextAreaProps) {
+export function TextArea({ 
+  label, 
+  error, 
+  helperText,
+  className = "", 
+  ...props 
+}: TextAreaProps) {
   return (
     <FormGroup>
       <label htmlFor={props.id} className="block text-sm font-medium text-gray-700">
@@ -64,9 +82,12 @@ export function TextArea({ label, error, className = "", ...props }: TextAreaPro
       </label>
       <textarea
         {...props}
-        className={`mt-1 block w-full shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border border-gray-300 rounded-md ${className}`}
+        className={`mt-1 block w-full shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm border border-gray-300 rounded-md ${
+          error ? "border-red-300" : ""
+        } ${className}`}
       />
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {helperText && !error && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
     </FormGroup>
   );
 }
@@ -74,16 +95,25 @@ export function TextArea({ label, error, className = "", ...props }: TextAreaPro
 interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
+  helperText?: string;
 }
 
-export function Checkbox({ label, error, className = "", ...props }: CheckboxProps) {
+export function Checkbox({ 
+  label, 
+  error, 
+  helperText,
+  className = "", 
+  ...props 
+}: CheckboxProps) {
   return (
     <FormGroup className="flex items-start">
       <div className="flex items-center h-5">
         <input
           type="checkbox"
           {...props}
-          className={`focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded ${className}`}
+          className={`focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded ${
+            error ? "border-red-300" : ""
+          } ${className}`}
         />
       </div>
       <div className="ml-3 text-sm">
@@ -91,6 +121,7 @@ export function Checkbox({ label, error, className = "", ...props }: CheckboxPro
           {label}
         </label>
         {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+        {helperText && !error && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
       </div>
     </FormGroup>
   );
@@ -103,9 +134,18 @@ interface RadioGroupProps {
   value: string;
   onChange: (value: string) => void;
   error?: string;
+  helperText?: string;
 }
 
-export function RadioGroup({ label, name, options, value, onChange, error }: RadioGroupProps) {
+export function RadioGroup({ 
+  label, 
+  name, 
+  options, 
+  value, 
+  onChange, 
+  error,
+  helperText 
+}: RadioGroupProps) {
   return (
     <FormGroup>
       <label className="block text-sm font-medium text-gray-700">{label}</label>
@@ -119,7 +159,9 @@ export function RadioGroup({ label, name, options, value, onChange, error }: Rad
               value={option.value}
               checked={value === option.value}
               onChange={(e) => onChange(e.target.value)}
-              className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
+              className={`focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 ${
+                error ? "border-red-300" : ""
+              }`}
             />
             <label
               htmlFor={`${name}-${option.value}`}
@@ -131,6 +173,7 @@ export function RadioGroup({ label, name, options, value, onChange, error }: Rad
         ))}
       </div>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {helperText && !error && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
     </FormGroup>
   );
 } 

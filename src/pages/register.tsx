@@ -1,132 +1,105 @@
 // src/pages/register.tsx
-import { useEffect } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { useRouter } from "next/router";
 import Link from "next/link";
+import { AuthError } from "@supabase/supabase-js";
 import Layout from "../components/Layout";
 import AuthCard from "../components/AuthCard";
-import { Input, Button, Message } from "../components/AuthCard";
 import { Form } from "../components/Form";
+import { Input, Button, Message } from "../components/AuthCard";
 import { useFormState } from "../hooks/useFormState";
 import { useFormValidation, commonRules } from "../hooks/useFormValidation";
 import { usePasswordValidation } from "../hooks/usePasswordValidation";
-import { useDebounce } from "../hooks/useDebounce";
 import { useFormReset } from "../hooks/useFormReset";
-import { AuthError } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabaseClient";
 
 interface RegisterForm extends Record<string, string> {
   email: string;
   password: string;
 }
 
+const passwordRequirements = [
+  "Be at least 8 characters long",
+  "Include at least one uppercase letter",
+  "Include at least one lowercase letter",
+  "Include at least one number",
+  "Include at least one special character",
+];
+
 export default function Register() {
-  const { formData, setFormData, resetForm } = useFormReset<RegisterForm>({
+  const router = useRouter();
+  const { loading, message, messageType, setFormState, handleError, setSuccess } = useFormState();
+  
+  const { formData, setFormData } = useFormReset<RegisterForm>({
     email: "",
     password: "",
   });
 
-  const debouncedEmail = useDebounce(formData.email);
-  const debouncedPassword = useDebounce(formData.password);
-
-  const { loading, message, messageType, setFormState, handleError, setSuccess } = useFormState();
-  const { validatePassword, getPasswordRequirements } = usePasswordValidation();
+  const { validatePassword } = usePasswordValidation();
 
   const { errors, validateForm, validateField } = useFormValidation({
-    email: [commonRules.required(), commonRules.email()],
+    email: [commonRules.required("Email is required"), commonRules.email()],
     password: [
-      commonRules.required(),
-      commonRules.minLength(8),
-      {
-        test: (value) => /[A-Z]/.test(value),
-        message: "Must contain at least one uppercase letter",
-      },
-      {
-        test: (value) => /[a-z]/.test(value),
-        message: "Must contain at least one lowercase letter",
-      },
-      {
-        test: (value) => /[0-9]/.test(value),
-        message: "Must contain at least one number",
-      },
-      {
-        test: (value) => /[^A-Za-z0-9]/.test(value),
-        message: "Must contain at least one special character",
+      commonRules.required("Password is required"),
+      (value) => {
+        const passwordError = validatePassword(value);
+        return passwordError ? passwordError : "";
       },
     ],
   });
 
-  // Validate on debounced values
-  useEffect(() => {
-    validateField("email", debouncedEmail);
-  }, [debouncedEmail, validateField]);
-
-  useEffect(() => {
-    validateField("password", debouncedPassword);
-  }, [debouncedPassword, validateField]);
-
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormState({ loading: true, message: "", messageType: "" });
-
-    // Validate form
-    const isValid = validateForm(formData);
-    if (!isValid) {
-      setFormState({
-        loading: false,
-        message: "Please fix the errors below.",
-        messageType: "error",
-      });
+    
+    if (!validateForm(formData)) {
       return;
     }
 
-    // Validate password
-    const validation = validatePassword(formData.password);
-    if (!validation.isValid) {
-      setFormState({
-        loading: false,
-        message: validation.errors[0],
-        messageType: "error",
-      });
-      return;
-    }
+    setFormState({ loading: true });
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
       });
 
       if (error) {
-        if (error.message.includes("already exists")) {
-          handleError(error, "This email is already registered. Please use a different email or try logging in.");
-        } else {
-          handleError(error);
-        }
-        return;
+        throw error;
+      }
+
+      if (!data.user) {
+        throw new Error("No user data returned");
       }
 
       setSuccess("Registration successful! Please check your email for verification.");
-      resetForm();
-      
-    } catch (error: unknown) {
-      if (error instanceof AuthError || error instanceof Error) {
+      setFormData({ email: "", password: "" });
+
+    } catch (error) {
+      if (error instanceof AuthError) {
+        handleError(new Error(error.message));
+      } else if (error instanceof Error) {
         handleError(error);
       } else {
-        handleError(null, "An unexpected error occurred during registration. Please try again.");
+        console.error("Registration error:", error);
+        handleError(new Error("An unexpected error occurred during registration. Please try again."));
       }
     }
   };
 
-  const passwordRequirements = getPasswordRequirements();
-
   return (
     <Layout>
-      <AuthCard title="Create Account">
+      <AuthCard 
+        title="Create Account" 
+        subtitle="Sign up for a new account"
+      >
         <Form onSubmit={handleRegister}>
           <Input
             id="email"
             type="email"
             value={formData.email}
-            onChange={(e) => setFormData({ email: e.target.value })}
+            onChange={(e) => {
+              setFormData({ email: e.target.value });
+              validateField("email", e.target.value);
+            }}
             label="Email"
             placeholder="Enter your email"
             required
@@ -138,7 +111,10 @@ export default function Register() {
               id="password"
               type="password"
               value={formData.password}
-              onChange={(e) => setFormData({ password: e.target.value })}
+              onChange={(e) => {
+                setFormData({ password: e.target.value });
+                validateField("password", e.target.value);
+              }}
               label="Password"
               placeholder="Enter your password"
               required

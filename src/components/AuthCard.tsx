@@ -3,13 +3,23 @@ import { ReactNode } from "react";
 interface AuthCardProps {
   children: ReactNode;
   title: string;
+  subtitle?: string;
+  className?: string;
 }
 
-export default function AuthCard({ children, title }: AuthCardProps) {
+export default function AuthCard({ 
+  children, 
+  title, 
+  subtitle,
+  className = "max-w-md mx-auto mt-8 px-4 sm:px-6 lg:px-8"
+}: AuthCardProps) {
   return (
-    <div className="max-w-md mx-auto mt-8 px-4 sm:px-6 lg:px-8">
+    <div className={className}>
       <div className="bg-white py-8 px-6 shadow-xl rounded-lg sm:px-10">
-        <h1 className="text-3xl font-bold text-gray-900 text-center mb-8">{title}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 text-center mb-4">{title}</h1>
+        {subtitle && (
+          <p className="text-center text-gray-600 mb-8">{subtitle}</p>
+        )}
         {children}
       </div>
     </div>
@@ -39,9 +49,16 @@ export function Message({ message, type }: MessageProps) {
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
+  helperText?: string;
 }
 
-export const Input: React.FC<InputProps> = ({ label, error, className = "", ...props }) => {
+export const Input: React.FC<InputProps> = ({ 
+  label, 
+  error, 
+  helperText,
+  className = "", 
+  ...props 
+}) => {
   return (
     <div className="mb-4">
       <label htmlFor={props.id} className="block text-sm font-medium text-gray-700 mb-1">
@@ -54,29 +71,39 @@ export const Input: React.FC<InputProps> = ({ label, error, className = "", ...p
         {...props}
       />
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {helperText && !error && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
     </div>
   );
 };
 
 // Button component for form submission
-interface ButtonProps {
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
-  disabled?: boolean;
+  variant?: "primary" | "secondary" | "danger";
   children: ReactNode;
-  type?: "button" | "submit" | "reset";
 }
 
 export function Button({
   loading = false,
   disabled = false,
+  variant = "primary",
   children,
-  type = "submit"
+  className = "",
+  type = "submit",
+  ...props
 }: ButtonProps) {
+  const variants = {
+    primary: "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500",
+    secondary: "bg-gray-600 hover:bg-gray-700 focus:ring-gray-500",
+    danger: "bg-red-600 hover:bg-red-700 focus:ring-red-500"
+  };
+
   return (
     <button
       type={type}
       disabled={disabled || loading}
-      className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+      className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${variants[variant]} focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed ${className}`}
+      {...props}
     >
       {loading ? (
         <span className="flex items-center">

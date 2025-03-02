@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { supabase } from "../lib/supabaseClient";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { AuthError } from "@supabase/supabase-js";
@@ -10,12 +8,18 @@ import { Input, Button, Message } from "../components/AuthCard";
 import { useFormState } from "../hooks/useFormState";
 import { useFormValidation, commonRules } from "../hooks/useFormValidation";
 import { useFormReset } from "../hooks/useFormReset";
+import { supabase } from "../lib/supabaseClient";
+
+interface LoginForm extends Record<string, string> {
+  email: string;
+  password: string;
+}
 
 export default function Login() {
   const router = useRouter();
   const { loading, message, messageType, setFormState, handleError, setSuccess } = useFormState();
   
-  const { formData, setFormData } = useFormReset({
+  const { formData, setFormData } = useFormReset<LoginForm>({
     email: "",
     password: "",
   });
@@ -27,127 +31,73 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormState({ loading: true, message: "", messageType: "" });
-
-    // Validate form
-    const isValid = validateForm(formData);
-    if (!isValid) {
-      setFormState({
-        loading: false,
-        message: "Please fix the errors below.",
-        messageType: "error",
-      });
+    
+    if (!validateForm(formData)) {
       return;
     }
 
+    setFormState({ loading: true });
+
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
-      if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          setFormState({
-            loading: false,
-            message: "Invalid email or password. Please check your credentials and try again.",
-            messageType: "error"
-          });
-        } else if (error.message.includes("Email not confirmed")) {
-          setFormState({
-            loading: false,
-            message: "Please verify your email before logging in. Check your inbox for the verification link.",
-            messageType: "error"
-          });
-        } else {
-          setFormState({
-            loading: false,
-            message: error.message,
-            messageType: "error"
-          });
-        }
-        return;
+      if (authError) {
+        throw authError;
       }
 
-      if (data?.user) {
-        try {
-          // Check if profile exists
-          const { data: profileData, error: profileError } = await supabase
+      if (!authData.user) {
+        throw new Error("No user data returned");
+      }
+
+      // Check if user has a profile
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", authData.user.id)
+        .single();
+
+      if (profileError) {
+        // If profile doesn't exist, create one
+        if (profileError.code === "PGRST116") {
+          const { error: createError } = await supabase
             .from("profiles")
-            .select("*")
-            .eq("id", data.user.id)
-            .single();
+            .insert([{ id: authData.user.id }]);
 
-          if (profileError && profileError.code === "PGRST116") {
-            // Profile doesn't exist, create it with only id field
-            console.log("Creating new profile for user:", data.user.id);
-            
-            const { error: insertError } = await supabase
-              .from("profiles")
-              .insert([{ id: data.user.id }])
-              .select()
-              .single();
-
-            if (insertError) {
-              console.error("Detailed insert error:", {
-                code: insertError.code,
-                message: insertError.message,
-                details: insertError.details,
-                hint: insertError.hint
-              });
-              setFormState({
-                loading: false,
-                message: `Failed to create user profile: ${insertError.message}`,
-                messageType: "error"
-              });
-              return;
-            }
-          } else if (profileError) {
-            console.error("Error checking profile:", profileError);
-            setFormState({
-              loading: false,
-              message: "Failed to verify user profile. Please try again.",
-              messageType: "error"
-            });
-            return;
+          if (createError) {
+            throw createError;
           }
-
-          setFormState({
-            loading: false,
-            message: "Login successful! Redirecting...",
-            messageType: "success"
-          });
-            
-          // Get the return URL from query parameters or default to profile
-          const returnUrl = router.query.returnUrl as string || "/profile";
-            
-          // Add a small delay to show the success message
-          setTimeout(() => {
-            router.push(returnUrl);
-          }, 1000);
-
-        } catch (error) {
-          console.error("Profile creation error:", error);
-          setFormState({
-            loading: false,
-            message: "An error occurred during login. Please try again.",
-            messageType: "error"
-          });
+        } else {
+          throw profileError;
         }
       }
-    } catch (error: unknown) {
-      console.error("Login error:", error);
-      setFormState({
-        loading: false,
-        message: "An unexpected error occurred during login. Please try again.",
-        messageType: "error"
-      });
+
+      setSuccess("Login successful!");
+      
+      // Redirect to the return URL if provided, otherwise go to profile
+      const returnUrl = router.query.returnUrl as string;
+      router.push(returnUrl || "/profile");
+
+    } catch (error) {
+      if (error instanceof AuthError) {
+        handleError(new Error(error.message));
+      } else if (error instanceof Error) {
+        handleError(error);
+      } else {
+        console.error("Login error:", error);
+        handleError(new Error("An unexpected error occurred during login. Please try again."));
+      }
     }
   };
 
   return (
     <Layout>
-      <AuthCard title="Sign in to your account">
+      <AuthCard 
+        title="Welcome Back" 
+        subtitle="Sign in to your account to continue"
+      >
         <Form onSubmit={handleLogin}>
           <Input
             id="email"
@@ -188,7 +138,7 @@ export default function Login() {
           <p className="text-center text-sm text-gray-600">
             Don't have an account?{" "}
             <Link href="/register" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign up
+              Create one here
             </Link>
           </p>
           <p className="text-center text-sm text-gray-600">
