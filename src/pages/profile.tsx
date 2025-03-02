@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../lib/supabaseClient";
 import Layout from "../components/Layout";
@@ -33,6 +33,7 @@ export default function Profile() {
   const { user, profile: currentProfile, loading: authLoading } = useAuth();
   const { loading, message, messageType, setFormState, handleError, setSuccess } = useFormState();
   
+  const initRef = useRef(false);
   const { formData, updateField, resetForm } = useFormReset<ProfileFormData>({
     email: "",
     first_name: "",
@@ -56,7 +57,8 @@ export default function Profile() {
   });
 
   useEffect(() => {
-    if (!authLoading && currentProfile) {
+    if (!authLoading && currentProfile && !initRef.current) {
+      initRef.current = true;
       resetForm({
         email: currentProfile.email || "",
         first_name: currentProfile.first_name || "",
@@ -69,7 +71,7 @@ export default function Profile() {
         apply_role: currentProfile.apply_role,
       });
     }
-  }, [authLoading, resetForm, currentProfile]);
+  }, [authLoading, currentProfile]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
