@@ -1,4 +1,5 @@
-import { ReactNode } from "react";
+import { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes } from "react";
+import { FormMessageType } from "../types/form";
 
 interface AuthCardProps {
   children: ReactNode;
@@ -7,113 +8,145 @@ interface AuthCardProps {
   className?: string;
 }
 
-export default function AuthCard({ 
-  children, 
-  title, 
-  subtitle,
-  className = "max-w-md mx-auto mt-8 px-4 sm:px-6 lg:px-8"
-}: AuthCardProps) {
+export function AuthCard({ title, subtitle, children, className = "" }: AuthCardProps) {
   return (
-    <div className={className}>
-      <div className="bg-white py-8 px-6 shadow-xl rounded-lg sm:px-10">
-        <h1 className="text-3xl font-bold text-gray-900 text-center mb-4">{title}</h1>
+    <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          {title}
+        </h2>
         {subtitle && (
-          <p className="text-center text-gray-600 mb-8">{subtitle}</p>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            {subtitle}
+          </p>
         )}
-        {children}
+      </div>
+
+      <div className={`mt-8 sm:mx-auto sm:w-full sm:max-w-md ${className}`}>
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {children}
+        </div>
       </div>
     </div>
   );
 }
 
-// Message component for displaying success/error messages
-interface MessageProps {
-  message: string;
-  type: "error" | "success";
-}
-
-export function Message({ message, type }: MessageProps) {
-  const styles = {
-    error: "bg-red-50 text-red-700 border border-red-200",
-    success: "bg-green-50 text-green-700 border border-green-200"
-  };
-
-  return (
-    <div className={`mt-6 rounded-md p-4 ${styles[type]}`}>
-      <p className="text-sm">{message}</p>
-    </div>
-  );
-}
-
-// Input component for form fields
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
   helperText?: string;
 }
 
-export const Input: React.FC<InputProps> = ({ 
+export function Input({ 
   label, 
   error, 
   helperText,
   className = "", 
   ...props 
-}) => {
+}: InputProps) {
   return (
-    <div className="mb-4">
-      <label htmlFor={props.id} className="block text-sm font-medium text-gray-700 mb-1">
+    <div>
+      <label htmlFor={props.id} className="block text-sm font-medium text-gray-700">
         {label}
       </label>
-      <input
-        className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
-          error ? "border-red-300" : ""
-        } ${className}`}
-        {...props}
-      />
+      <div className="mt-1">
+        <input
+          {...props}
+          className={`appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
+            error ? "border-red-300" : ""
+          } ${className}`}
+        />
+      </div>
       {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
       {helperText && !error && <p className="mt-1 text-sm text-gray-500">{helperText}</p>}
     </div>
   );
-};
-
-// Button component for form submission
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  loading?: boolean;
-  variant?: "primary" | "secondary" | "danger";
-  children: ReactNode;
 }
 
-export function Button({
-  loading = false,
-  disabled = false,
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  loading?: boolean;
+  variant?: "primary" | "secondary" | "danger";
+}
+
+export function Button({ 
+  children, 
+  loading = false, 
   variant = "primary",
-  children,
-  className = "",
-  type = "submit",
-  ...props
+  className = "", 
+  ...props 
 }: ButtonProps) {
-  const variants = {
-    primary: "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500",
-    secondary: "bg-gray-600 hover:bg-gray-700 focus:ring-gray-500",
-    danger: "bg-red-600 hover:bg-red-700 focus:ring-red-500"
+  const baseClasses = "w-full flex justify-center py-2 px-4 border rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2";
+  
+  const variantClasses = {
+    primary: "border-transparent text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500",
+    secondary: "border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:ring-blue-500",
+    danger: "border-transparent text-white bg-red-600 hover:bg-red-700 focus:ring-red-500",
   };
 
   return (
     <button
-      type={type}
-      disabled={disabled || loading}
-      className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${variants[variant]} focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed ${className}`}
+      type="submit"
+      disabled={loading || props.disabled}
+      className={`${baseClasses} ${variantClasses[variant]} ${className}`}
       {...props}
     >
       {loading ? (
-        <span className="flex items-center">
-          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          Loading...
-        </span>
-      ) : children}
+        <svg
+          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          />
+        </svg>
+      ) : null}
+      {children}
     </button>
+  );
+}
+
+interface MessageProps {
+  message: string;
+  type: FormMessageType;
+}
+
+export function Message({ message, type }: MessageProps) {
+  const bgColors = {
+    error: "bg-red-50",
+    success: "bg-green-50",
+    info: "bg-blue-50",
+    warning: "bg-yellow-50",
+  };
+
+  const textColors = {
+    error: "text-red-800",
+    success: "text-green-800",
+    info: "text-blue-800",
+    warning: "text-yellow-800",
+  };
+
+  const borderColors = {
+    error: "border-red-400",
+    success: "border-green-400",
+    info: "border-blue-400",
+    warning: "border-yellow-400",
+  };
+
+  return (
+    <div className={`mt-4 rounded-md ${bgColors[type]} p-4 border ${borderColors[type]}`}>
+      <p className={`text-sm font-medium ${textColors[type]}`}>{message}</p>
+    </div>
   );
 } 

@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
 import ProtectedRoute from "../components/ProtectedRoute";
 import Layout from "../components/Layout";
 import { useAuth } from "../contexts/AuthContext";
-import { Input, Button, Message } from "../components/AuthCard";
+import { Input, Message } from "../components/AuthCard";
 import { Select } from "../components/Form";
+import { FormMessageType } from "../types/form";
 
 interface Profile {
   id: string;
@@ -31,19 +32,16 @@ const GROUP_OPTIONS = [
   { value: "MHS", label: "Middle High School" },
 ];
 
-const ITEMS_PER_PAGE = 10;
-
 export default function RoleApprovals() {
   const { user } = useAuth();
-  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+  const [message, setMessage] = useState<{ text: string; type: FormMessageType } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch current user's role and pending applications
   useEffect(() => {
@@ -77,58 +75,39 @@ export default function RoleApprovals() {
     fetchData();
   }, [user]);
 
-  const fetchProfiles = async () => {
+  const fetchProfiles = useCallback(async () => {
     try {
       let query = supabase
         .from("profiles")
-        .select("id, first_name, last_name, group, role, apply_role", { count: "exact" })
-        .not("apply_role", "is", null)
+        .select("*")
         .not("first_name", "is", null)
         .not("last_name", "is", null)
-        .not("group", "is", null);
+        .not("role", "eq", "admin");
 
-      // Apply group filter only if a specific group is selected
-      if (selectedGroup !== "") {
+      if (selectedGroup) {
         query = query.eq("group", selectedGroup);
       }
 
-      // Apply name search filter
       if (searchTerm) {
         query = query.or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%`);
       }
 
-      // Add pagination
-      const start = (currentPage - 1) * ITEMS_PER_PAGE;
-      const end = start + ITEMS_PER_PAGE - 1;
-      query = query.range(start, end);
-
-      const { data, count, error } = await query;
+      const { data, error } = await query;
 
       if (error) throw error;
-
-      if (count !== null) {
-        setTotalPages(Math.ceil(count / ITEMS_PER_PAGE));
-      }
-
-      // Filter based on role hierarchy
-      const filteredData = data?.filter((profile) => {
-        const currentLevel = ROLE_LEVELS[currentUserRole as keyof typeof ROLE_LEVELS] || 99;
-        const applyLevel = ROLE_LEVELS[profile.apply_role as keyof typeof ROLE_LEVELS] || 99;
-        return currentLevel < applyLevel;
-      });
-
-      setProfiles(filteredData || []);
+      setProfiles(data || []);
     } catch (error) {
       console.error("Error fetching profiles:", error);
       setError("Failed to load profiles");
     }
-  };
+  }, [selectedGroup, searchTerm]);
 
+  // Effect hooks for fetching data
   useEffect(() => {
-    if (currentUserRole && !loading) {
+    if (!loading && currentUserRole) {
       fetchProfiles();
     }
-  }, [currentPage, searchTerm, selectedGroup, currentUserRole, loading]);
+  }, [loading, currentUserRole, fetchProfiles]);
 
   const isRoleDowngrade = (currentRole: string, applyRole: string) => {
     const currentLevel = ROLE_LEVELS[currentRole as keyof typeof ROLE_LEVELS] || 99;
@@ -242,7 +221,9 @@ export default function RoleApprovals() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {profiles.map((profile) => (
+                {profiles
+                  .slice((currentPage - 1) * 10, currentPage * 10)
+                  .map((profile) => (
                   <tr key={profile.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {profile.last_name}, {profile.first_name}
@@ -280,10 +261,10 @@ export default function RoleApprovals() {
             </div>
           )}
 
-          {totalPages > 1 && (
+          {profiles.length > 0 && (
             <div className="mt-4 flex justify-center">
               <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                {Array.from({ length: totalPages }).map((_, index) => (
+                {Array.from({ length: Math.ceil(profiles.length / 10) }).map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setCurrentPage(index + 1)}

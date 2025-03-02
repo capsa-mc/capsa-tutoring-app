@@ -2,8 +2,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../lib/supabaseClient';
 import Layout from '../../components/Layout';
-import AuthCard from '../../components/AuthCard';
-import { Message } from '../../components/AuthCard';
+import { AuthCard, Message } from '../../components/AuthCard';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { useFormState } from '../../hooks/useFormState';
 import { AuthError } from '@supabase/supabase-js';
@@ -19,7 +18,7 @@ export default function AuthCallback() {
         const hash = window.location.hash;
         
         if (!hash) {
-          handleError(null, 'No verification token found.');
+          handleError(new Error('No verification token found.'));
           return;
         }
 
@@ -29,7 +28,7 @@ export default function AuthCallback() {
         const type = hashParams.get('type');
 
         if (!accessToken || !type) {
-          handleError(null, 'Invalid verification link.');
+          handleError(new Error('Invalid verification link.'));
           return;
         }
 
@@ -44,7 +43,7 @@ export default function AuthCallback() {
           if (user) {
             // Check if profile exists and create if it doesn't
             const { error: profileError } = await supabase
-              .from('profile')
+              .from('profiles')
               .select('*')
               .eq('id', user.id)
               .single();
@@ -52,7 +51,7 @@ export default function AuthCallback() {
             if (profileError && profileError.code === 'PGRST116') {
               // Create profile if it doesn't exist
               const { error: insertError } = await supabase
-                .from('profile')
+                .from('profiles')
                 .insert([{ id: user.id, email: user.email }]);
 
               if (insertError) {
@@ -72,9 +71,9 @@ export default function AuthCallback() {
       } catch (error: unknown) {
         console.error('Error during email confirmation:', error);
         if (error instanceof AuthError || error instanceof Error) {
-          handleError(error, 'An error occurred during email verification. Please try again.');
+          handleError(error);
         } else {
-          handleError(null, 'An unexpected error occurred during email verification. Please try again.');
+          handleError(new Error('An unexpected error occurred during email verification. Please try again.'));
         }
       }
     };

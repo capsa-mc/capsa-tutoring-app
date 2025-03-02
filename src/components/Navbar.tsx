@@ -1,18 +1,48 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import Logo from "./Logo";
-import { useAuth } from "../contexts/AuthContext";
-import { useEffect, useState } from "react";
+
+type UserRole = "admin" | "staff" | "coordinator" | "tutor" | "tutee";
 
 interface NavbarProps {
   showAuthButtons?: boolean;
 }
 
+interface NavLinkProps {
+  href: string;
+  currentPath: string;
+  children: React.ReactNode;
+  isMobile?: boolean;
+}
+
+const NavLink = ({ href, currentPath, children, isMobile = false }: NavLinkProps) => {
+  const baseClasses = "font-medium";
+  const mobileClasses = "block px-3 py-2 rounded-md text-base";
+  const desktopClasses = "text-base";
+  
+  const isActive = currentPath === href;
+  const activeClasses = isMobile ? "bg-blue-50 text-blue-700" : "text-blue-700";
+  const inactiveClasses = "text-gray-500 hover:text-gray-900" + (isMobile ? " hover:bg-gray-50" : "");
+  
+  return (
+    <Link
+      href={href}
+      className={`${baseClasses} ${isMobile ? mobileClasses : desktopClasses} ${
+        isActive ? activeClasses : inactiveClasses
+      }`}
+    >
+      {children}
+    </Link>
+  );
+};
+
 export default function Navbar({ showAuthButtons = true }: NavbarProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -27,7 +57,7 @@ export default function Navbar({ showAuthButtons = true }: NavbarProps) {
           .single();
 
         if (error) throw error;
-        setUserRole(data.role);
+        setUserRole(data.role as UserRole);
       } catch (error) {
         console.error("Error fetching user role:", error);
       }
@@ -40,17 +70,57 @@ export default function Navbar({ showAuthButtons = true }: NavbarProps) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      router.push("/login");
+      await router.push("/login");
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
 
-  const isProtectedRoute = router.pathname !== "/" && router.pathname !== "/login" && router.pathname !== "/register";
+  const isProtectedRoute = !["", "/login", "/register"].includes(router.pathname);
+  const canAccessAdminPages = userRole && ["admin", "staff", "coordinator"].includes(userRole);
 
-  // Check if user has permission to access specific pages
-  const canAccessPairManagement = userRole && ["admin", "staff", "coordinator"].includes(userRole);
-  const canAccessRoleApprovals = userRole && ["admin", "staff", "coordinator"].includes(userRole);
+  const renderNavLinks = (isMobile = false) => (
+    <>
+      <NavLink href="/profile" currentPath={router.pathname} isMobile={isMobile}>
+        Profile
+      </NavLink>
+      {canAccessAdminPages && (
+        <>
+          <NavLink href="/pair-management" currentPath={router.pathname} isMobile={isMobile}>
+            Pair Management
+          </NavLink>
+          <NavLink href="/role-approvals" currentPath={router.pathname} isMobile={isMobile}>
+            Role Approvals
+          </NavLink>
+        </>
+      )}
+    </>
+  );
+
+  const renderAuthButtons = (isMobile = false) => {
+    const buttonClasses = isMobile
+      ? "block w-full px-3 py-2 rounded-md text-base font-medium"
+      : "inline-flex items-center justify-center px-4 py-2 rounded-md text-base font-medium";
+
+    return (
+      <>
+        <Link
+          href="/login"
+          className={`${buttonClasses} text-[#2563eb] hover:text-[#1d4ed8] ${
+            !isMobile && "hover:bg-blue-50"
+          }`}
+        >
+          Sign in
+        </Link>
+        <Link
+          href="/register"
+          className={`${buttonClasses} border border-[#2563eb] text-[#2563eb] bg-white hover:bg-blue-50`}
+        >
+          Sign up
+        </Link>
+      </>
+    );
+  };
 
   return (
     <nav className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -63,57 +133,13 @@ export default function Navbar({ showAuthButtons = true }: NavbarProps) {
         <div className="hidden md:flex md:items-center">
           {isProtectedRoute && user && (
             <div className="ml-8 flex space-x-4">
-              <Link
-                href="/profile"
-                className={`text-base font-medium ${
-                  router.pathname === "/profile"
-                    ? "text-blue-700"
-                    : "text-gray-500 hover:text-gray-900"
-                }`}
-              >
-                Profile
-              </Link>
-              {canAccessPairManagement && (
-                <Link
-                  href="/pair-management"
-                  className={`text-base font-medium ${
-                    router.pathname === "/pair-management"
-                      ? "text-blue-700"
-                      : "text-gray-500 hover:text-gray-900"
-                  }`}
-                >
-                  Pair Management
-                </Link>
-              )}
-              {canAccessRoleApprovals && (
-                <Link
-                  href="/role-approvals"
-                  className={`text-base font-medium ${
-                    router.pathname === "/role-approvals"
-                      ? "text-blue-700"
-                      : "text-gray-500 hover:text-gray-900"
-                  }`}
-                >
-                  Role Approvals
-                </Link>
-              )}
+              {renderNavLinks()}
             </div>
           )}
 
           {!isProtectedRoute && showAuthButtons && (
             <div className="flex items-center space-x-4">
-              <Link
-                href="/login"
-                className="text-base font-medium text-[#2563eb] hover:text-[#1d4ed8]"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center px-4 py-2 border border-[#2563eb] rounded-md shadow-sm text-base font-medium text-[#2563eb] bg-white hover:bg-blue-50"
-              >
-                Sign up
-              </Link>
+              {renderAuthButtons()}
             </div>
           )}
 
@@ -135,83 +161,48 @@ export default function Navbar({ showAuthButtons = true }: NavbarProps) {
         </div>
 
         {/* Mobile Menu Button */}
-        <div className="md:hidden">
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+        <button
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          className="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+          aria-expanded={isMenuOpen}
+        >
+          <span className="sr-only">Toggle menu</span>
+          <svg
+            className="h-6 w-6"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
           >
-            <span className="sr-only">Open main menu</span>
-            {!isMenuOpen ? (
-              <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            ) : (
-              <svg className="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            )}
-          </button>
-        </div>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d={
+                isMenuOpen
+                  ? "M6 18L18 6M6 6l12 12"
+                  : "M4 6h16M4 12h16M4 18h16"
+              }
+            />
+          </svg>
+        </button>
       </div>
 
       {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          <div className="px-2 pt-2 pb-3 space-y-1">
             {isProtectedRoute && user && (
-              <>
-                <Link
-                  href="/profile"
-                  className={`block px-3 py-2 rounded-md text-base font-medium ${
-                    router.pathname === "/profile"
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-                  }`}
-                >
-                  Profile
-                </Link>
-                {canAccessPairManagement && (
-                  <Link
-                    href="/pair-management"
-                    className={`block px-3 py-2 rounded-md text-base font-medium ${
-                      router.pathname === "/pair-management"
-                        ? "bg-blue-50 text-blue-700"
-                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-                    }`}
-                  >
-                    Pair Management
-                  </Link>
-                )}
-                {canAccessRoleApprovals && (
-                  <Link
-                    href="/role-approvals"
-                    className={`block px-3 py-2 rounded-md text-base font-medium ${
-                      router.pathname === "/role-approvals"
-                        ? "bg-blue-50 text-blue-700"
-                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-                    }`}
-                  >
-                    Role Approvals
-                  </Link>
-                )}
-              </>
+              <div className="space-y-1">
+                {renderNavLinks(true)}
+              </div>
             )}
 
             {!isProtectedRoute && showAuthButtons && (
-              <>
-                <Link
-                  href="/login"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-[#2563eb] hover:bg-gray-50"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/register"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-[#2563eb] hover:bg-gray-50"
-                >
-                  Sign up
-                </Link>
-              </>
+              <div className="space-y-1">
+                {renderAuthButtons(true)}
+              </div>
             )}
 
             {isProtectedRoute && user && (

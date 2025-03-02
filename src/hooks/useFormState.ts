@@ -1,63 +1,74 @@
 import { useState } from "react";
-import { PostgrestError } from "@supabase/supabase-js";
-
-type MessageType = "error" | "success" | "";
-
-interface FormState {
-  loading: boolean;
-  message: string;
-  messageType: MessageType;
-}
+import { FormState, FormMessageType } from "../types/form";
+import { handleError as handleAppError } from "../lib/errorHandler";
 
 interface UseFormStateReturn extends FormState {
   setFormState: (state: Partial<FormState>) => void;
-  resetFormState: () => void;
-  handleError: (error: Error | PostgrestError | null, customMessage?: string) => void;
+  handleError: (error: unknown) => void;
   setSuccess: (message: string) => void;
+  setInfo: (message: string) => void;
+  setWarning: (message: string) => void;
+  clearMessage: () => void;
+  reset: () => void;
 }
 
-export function useFormState(initialState?: Partial<FormState>): UseFormStateReturn {
-  const [formState, setFormStateInternal] = useState<FormState>({
-    loading: false,
-    message: "",
-    messageType: "",
-    ...initialState,
-  });
+const initialState: FormState = {
+  loading: false,
+  message: null,
+  messageType: null,
+  error: null,
+};
 
-  const setFormState = (state: Partial<FormState>) => {
-    setFormStateInternal((prev) => ({ ...prev, ...state }));
+export function useFormState(): UseFormStateReturn {
+  const [state, setState] = useState<FormState>(initialState);
+
+  const setFormState = (newState: Partial<FormState>) => {
+    setState(prev => ({ ...prev, ...newState }));
   };
 
-  const resetFormState = () => {
-    setFormStateInternal({
-      loading: false,
-      message: "",
-      messageType: "",
-    });
-  };
-
-  const handleError = (error: Error | PostgrestError | null, customMessage?: string) => {
-    console.error("Error:", error);
+  const setMessage = (message: string, type: FormMessageType) => {
     setFormState({
-      loading: false,
-      message: customMessage || error?.message || "An unexpected error occurred",
-      messageType: "error",
-    });
-  };
-
-  const setSuccess = (message: string) => {
-    setFormState({
-      loading: false,
       message,
-      messageType: "success",
+      messageType: type,
+      error: null,
+      loading: false,
     });
+  };
+
+  const handleError = (error: unknown) => {
+    const appError = handleAppError(error);
+    setFormState({
+      error: appError,
+      message: appError?.message || "An unexpected error occurred",
+      messageType: "error",
+      loading: false,
+    });
+  };
+
+  const setSuccess = (message: string) => setMessage(message, "success");
+  const setInfo = (message: string) => setMessage(message, "info");
+  const setWarning = (message: string) => setMessage(message, "warning");
+
+  const clearMessage = () => {
+    setFormState({
+      message: null,
+      messageType: null,
+      error: null,
+    });
+  };
+
+  const reset = () => {
+    setState(initialState);
   };
 
   return {
-    ...formState,
+    ...state,
     setFormState,
-    resetFormState,
     handleError,
     setSuccess,
+    setInfo,
+    setWarning,
+    clearMessage,
+    reset,
   };
 } 

@@ -23,11 +23,17 @@ export function FormGroup({ children, className = "space-y-1" }: FormGroupProps)
   return <div className={className}>{children}</div>;
 }
 
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "value"> {
   label: string;
   error?: string;
   helperText?: string;
-  options: Array<{ value: string; label: string }>;
+  options: readonly SelectOption[];
+  value: string;
 }
 
 export function Select({ 
@@ -48,7 +54,6 @@ export function Select({
         className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md ${
           error ? "border-red-300" : ""
         } ${className}`}
-        defaultValue={props.value || ""}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -130,7 +135,7 @@ export function Checkbox({
 interface RadioGroupProps {
   label: string;
   name: string;
-  options: Array<{ value: string; label: string }>;
+  options: readonly SelectOption[];
   value: string;
   onChange: (value: string) => void;
   error?: string;

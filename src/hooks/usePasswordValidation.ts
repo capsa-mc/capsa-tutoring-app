@@ -1,69 +1,61 @@
-interface PasswordValidationRules {
-  minLength?: number;
-  requireUppercase?: boolean;
-  requireLowercase?: boolean;
-  requireNumbers?: boolean;
-  requireSpecialChars?: boolean;
+import { useMemo } from "react";
+
+interface PasswordRequirement {
+  label: string;
+  test: (value: string) => boolean;
 }
 
-interface ValidationResult {
-  isValid: boolean;
-  errors: string[];
+interface UsePasswordValidationReturn {
+  validatePassword: (value: string) => string | null;
+  requirements: PasswordRequirement[];
+  checkRequirement: (value: string, index: number) => boolean;
 }
 
-export function usePasswordValidation(rules: PasswordValidationRules = {}) {
-  const {
-    minLength = 8,
-    requireUppercase = true,
-    requireLowercase = true,
-    requireNumbers = true,
-    requireSpecialChars = false,
-  } = rules;
+export function usePasswordValidation(): UsePasswordValidationReturn {
+  const requirements = useMemo<PasswordRequirement[]>(() => [
+    {
+      label: "Be at least 8 characters long",
+      test: (value) => value.length >= 8,
+    },
+    {
+      label: "Include at least one uppercase letter",
+      test: (value) => /[A-Z]/.test(value),
+    },
+    {
+      label: "Include at least one lowercase letter",
+      test: (value) => /[a-z]/.test(value),
+    },
+    {
+      label: "Include at least one number",
+      test: (value) => /[0-9]/.test(value),
+    },
+    {
+      label: "Include at least one special character",
+      test: (value) => /[!@#$%^&*(),.?":{}|<>]/.test(value),
+    },
+  ], []);
 
-  const validatePassword = (password: string): ValidationResult => {
-    const errors: string[] = [];
+  const validatePassword = (value: string): string | null => {
+    const failedRequirements = requirements.filter(
+      (req) => !req.test(value)
+    );
 
-    if (password.length < minLength) {
-      errors.push(`Password must be at least ${minLength} characters long`);
+    if (failedRequirements.length > 0) {
+      return `Password must: ${failedRequirements
+        .map((req) => req.label.toLowerCase())
+        .join(", ")}`;
     }
 
-    if (requireUppercase && !/[A-Z]/.test(password)) {
-      errors.push("Password must include at least one uppercase letter");
-    }
-
-    if (requireLowercase && !/[a-z]/.test(password)) {
-      errors.push("Password must include at least one lowercase letter");
-    }
-
-    if (requireNumbers && !/\d/.test(password)) {
-      errors.push("Password must include at least one number");
-    }
-
-    if (requireSpecialChars && !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      errors.push("Password must include at least one special character");
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    return null;
   };
 
-  const getPasswordRequirements = (): string[] => {
-    const requirements: string[] = [
-      `Be at least ${minLength} characters long`,
-    ];
-
-    if (requireUppercase) requirements.push("Include at least one uppercase letter");
-    if (requireLowercase) requirements.push("Include at least one lowercase letter");
-    if (requireNumbers) requirements.push("Include at least one number");
-    if (requireSpecialChars) requirements.push("Include at least one special character");
-
-    return requirements;
+  const checkRequirement = (value: string, index: number): boolean => {
+    return requirements[index].test(value);
   };
 
   return {
     validatePassword,
-    getPasswordRequirements,
+    requirements,
+    checkRequirement,
   };
 } 

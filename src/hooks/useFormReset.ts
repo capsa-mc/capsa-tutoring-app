@@ -1,41 +1,32 @@
 import { useState, useCallback } from "react";
+import { FormData } from "../types/form";
 
-export type FormFields = {
-  [key: string]: string;
-}
-
-export type UseFormResetReturn<T> = {
+interface UseFormResetReturn<T extends FormData> {
   formData: T;
   setFormData: (data: Partial<T>) => void;
-  resetForm: () => void;
-  clearField: (field: keyof T) => void;
+  resetForm: (data?: T) => void;
+  updateField: (field: keyof T, value: T[keyof T]) => void;
 }
 
-export function useFormReset<T extends { [K in keyof T]: string }>(initialState: T): UseFormResetReturn<T> {
-  const [formData, setFormDataState] = useState<T>(initialState);
+export function useFormReset<T extends FormData>(initialData: T): UseFormResetReturn<T> {
+  const [formData, setFormDataInternal] = useState<T>(initialData);
 
   const setFormData = useCallback((data: Partial<T>) => {
-    setFormDataState(prev => ({
-      ...prev,
-      ...data,
-    }));
+    setFormDataInternal(prev => ({ ...prev, ...data }));
   }, []);
 
-  const resetForm = useCallback(() => {
-    setFormDataState(initialState);
-  }, [initialState]);
-
-  const clearField = useCallback((field: keyof T) => {
-    setFormDataState(prev => ({
-      ...prev,
-      [field]: "",
-    }));
+  const updateField = useCallback((field: keyof T, value: T[keyof T]) => {
+    setFormDataInternal(prev => ({ ...prev, [field]: value }));
   }, []);
+
+  const resetForm = useCallback((data?: T) => {
+    setFormDataInternal(data || initialData);
+  }, [initialData]);
 
   return {
     formData,
     setFormData,
     resetForm,
-    clearField,
+    updateField,
   };
 } 

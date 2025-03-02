@@ -2,14 +2,12 @@ import { useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import Link from "next/link";
 import Layout from "../../components/Layout";
-import AuthCard from "../../components/AuthCard";
-import { Input, Button, Message } from "../../components/AuthCard";
+import { AuthCard, Input, Button, Message } from "../../components/AuthCard";
 import { Form } from "../../components/Form";
 import { useFormState } from "../../hooks/useFormState";
 import { useFormValidation, commonRules } from "../../hooks/useFormValidation";
 import { useDebounce } from "../../hooks/useDebounce";
 import { useFormReset } from "../../hooks/useFormReset";
-import { AuthError } from "@supabase/supabase-js";
 
 interface ResetPasswordForm extends Record<string, string> {
   email: string;
@@ -34,7 +32,7 @@ export default function ResetPassword() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormState({ loading: true, message: "", messageType: "" });
+    setFormState({ loading: true, message: null, messageType: null });
 
     // Validate form
     const isValid = validateForm(formData);
@@ -54,9 +52,9 @@ export default function ResetPassword() {
 
       if (error) {
         if (error.message.includes("Email not found")) {
-          handleError(error, "No account found with this email address.");
+          handleError(new Error("No account found with this email address."));
         } else if (error.message.includes("Too many requests")) {
-          handleError(error, "Too many reset attempts. Please try again later.");
+          handleError(new Error("Too many reset attempts. Please try again later."));
         } else {
           handleError(error);
         }
@@ -66,10 +64,10 @@ export default function ResetPassword() {
       setSuccess("Password reset instructions have been sent to your email.");
       resetForm();
     } catch (error: unknown) {
-      if (error instanceof AuthError || error instanceof Error) {
+      if (error instanceof Error) {
         handleError(error);
       } else {
-        handleError(null, "An unexpected error occurred while requesting password reset. Please try again.");
+        handleError(new Error("An unexpected error occurred while requesting password reset. Please try again."));
       }
     }
   };

@@ -1,80 +1,100 @@
 import { useState } from "react";
+import { ValidationRule, ValidationRules, ValidationErrors, FormValidation } from "../types/form";
 
-export interface ValidationRule {
-  test: (value: string) => boolean;
-  message: string;
-}
-
-export interface ValidationRules {
-  [key: string]: ValidationRule[];
-}
-
-export interface ValidationErrors {
-  [key: string]: string[];
-}
-
-export const useFormValidation = <T extends Record<string, string>>(rules: {
-  [K in keyof T]?: ValidationRule[];
-}) => {
+export function useFormValidation(rules: ValidationRules): FormValidation {
   const [errors, setErrors] = useState<ValidationErrors>({});
 
-  const validateField = (name: keyof T, value: string): string[] => {
-    if (!rules[name]) return [];
+  const validateField = (field: string, value: string): boolean => {
+    const fieldRules = rules[field];
+    if (!fieldRules) return true;
 
-    return rules[name]!
-      .map(rule => (!rule.test(value) ? rule.message : ""))
-      .filter(Boolean);
+    const fieldErrors: string[] = [];
+    for (const rule of fieldRules) {
+      if (!rule.validate(value)) {
+        fieldErrors.push(rule.message);
+      }
+    }
+
+    setErrors(prev => ({
+      ...prev,
+      [field]: fieldErrors
+    }));
+
+    return fieldErrors.length === 0;
   };
 
-  const validateForm = (formData: T): boolean => {
+  const validateForm = <T extends Record<string, unknown>>(data: T): boolean => {
     const newErrors: ValidationErrors = {};
     let isValid = true;
 
-    (Object.keys(rules) as Array<keyof T>).forEach(fieldName => {
-      const value = formData[fieldName];
-      const fieldErrors = validateField(fieldName, value);
-      if (fieldErrors.length > 0) {
-        newErrors[fieldName as string] = fieldErrors;
-        isValid = false;
+    for (const field in rules) {
+      const value = String(data[field] || "");
+      const fieldRules = rules[field];
+
+      if (!fieldRules) continue;
+
+      const fieldErrors: string[] = [];
+      for (const rule of fieldRules) {
+        if (!rule.validate(value)) {
+          fieldErrors.push(rule.message);
+          isValid = false;
+        }
       }
-    });
+
+      if (fieldErrors.length > 0) {
+        newErrors[field] = fieldErrors;
+      }
+    }
 
     setErrors(newErrors);
     return isValid;
   };
 
-  const clearErrors = () => {
-    setErrors({});
-  };
+  const clearErrors = () => setErrors({});
 
   return {
     errors,
-    validateField,
     validateForm,
+    validateField,
     clearErrors,
+    setErrors,
   };
-};
+}
 
-// Common validation rules
 export const commonRules = {
   required: (message = "This field is required"): ValidationRule => ({
-    test: (value) => value.trim().length > 0,
+    validate: (value: string) => value.trim().length > 0,
     message,
   }),
+
   email: (message = "Please enter a valid email address"): ValidationRule => ({
-    test: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+    validate: (value: string) =>
+      /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value),
     message,
   }),
+
   minLength: (length: number, message?: string): ValidationRule => ({
-    test: (value) => value.length >= length,
+    validate: (value: string) => value.length >= length,
     message: message || `Must be at least ${length} characters`,
   }),
+
   maxLength: (length: number, message?: string): ValidationRule => ({
-    test: (value) => value.length <= length,
+    validate: (value: string) => value.length <= length,
     message: message || `Must be no more than ${length} characters`,
   }),
-  matches: (pattern: RegExp, message: string): ValidationRule => ({
-    test: (value) => pattern.test(value),
+
+  pattern: (pattern: RegExp, message: string): ValidationRule => ({
+    validate: (value: string) => pattern.test(value),
+    message,
+  }),
+
+  match: (matchValue: string, message: string): ValidationRule => ({
+    validate: (value: string) => value === matchValue,
+    message,
+  }),
+
+  custom: (validateFn: (value: string) => boolean, message: string): ValidationRule => ({
+    validate: validateFn,
     message,
   }),
 }; 

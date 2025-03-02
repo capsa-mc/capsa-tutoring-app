@@ -3,23 +3,23 @@ import { useRouter } from "next/router";
 import { supabase } from "../../lib/supabaseClient";
 import Link from "next/link";
 import Layout from "../../components/Layout";
-import AuthCard from "../../components/AuthCard";
-import { Input, Button, Message } from "../../components/AuthCard";
+import { AuthCard, Input, Button, Message } from "../../components/AuthCard";
 import { Form } from "../../components/Form";
 import { useFormState } from "../../hooks/useFormState";
 import { useFormValidation, commonRules } from "../../hooks/useFormValidation";
 import { usePasswordValidation } from "../../hooks/usePasswordValidation";
 import { useDebounce } from "../../hooks/useDebounce";
 import { useFormReset } from "../../hooks/useFormReset";
-import { AuthError } from "@supabase/supabase-js";
-
-interface UpdatePasswordForm extends Record<string, string> {
-  password: string;
-  confirmPassword: string;
-}
 
 export default function UpdatePassword() {
-  const { formData, setFormData, resetForm } = useFormReset<UpdatePasswordForm>({
+  const router = useRouter();
+  const { loading, message, messageType, setFormState, handleError, setSuccess } = useFormState();
+  const { validatePassword, requirements, checkRequirement } = usePasswordValidation();
+  
+  const { formData, updateField, resetForm } = useFormReset<{
+    password: string;
+    confirmPassword: string;
+  }>({
     password: "",
     confirmPassword: "",
   });
@@ -27,24 +27,17 @@ export default function UpdatePassword() {
   const debouncedPassword = useDebounce(formData.password);
   const debouncedConfirmPassword = useDebounce(formData.confirmPassword);
 
-  const { loading, message, messageType, setFormState, handleError, setSuccess } = useFormState();
-  const { validatePassword, getPasswordRequirements } = usePasswordValidation({
-    minLength: 8,
-    requireUppercase: true,
-    requireLowercase: true,
-    requireNumbers: true,
-    requireSpecialChars: true,
-  });
-  const router = useRouter();
-
   const { errors, validateForm, validateField } = useFormValidation({
-    password: [commonRules.required()],
+    password: [
+      commonRules.required("Password is required"),
+      commonRules.custom(
+        (value) => !validatePassword(value),
+        validatePassword("") || "Invalid password"
+      ),
+    ],
     confirmPassword: [
-      commonRules.required(),
-      {
-        test: (value) => value === formData.password,
-        message: "Passwords do not match",
-      },
+      commonRules.required("Please confirm your password"),
+      commonRules.match(formData.password, "Passwords do not match"),
     ],
   });
 
@@ -52,104 +45,94 @@ export default function UpdatePassword() {
   useEffect(() => {
     if (debouncedPassword) {
       validateField("password", debouncedPassword);
-      const validation = validatePassword(debouncedPassword);
-      if (!validation.isValid) {
-        setFormState({
-          loading: false,
-          message: validation.errors[0],
-          messageType: "error",
-        });
-      }
     }
-  }, [debouncedPassword, validateField, validatePassword, setFormState]);
+  }, [debouncedPassword, validateField]);
 
-  // Validate confirm password
-  useEffect(() => {
-    if (debouncedPassword && formData.confirmPassword) {
-      validateField("confirmPassword", formData.confirmPassword);
-    }
-  }, [debouncedPassword, formData.confirmPassword, validateField]);
-
-  // Validate confirm password on change
   useEffect(() => {
     if (debouncedConfirmPassword) {
       validateField("confirmPassword", debouncedConfirmPassword);
     }
-  }, [debouncedConfirmPassword, validateField]);
+  }, [debouncedConfirmPassword, validateField, formData.password]);
 
-  // Check access token
+  // Check access token on mount
   useEffect(() => {
-    const checkAccessToken = () => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get("access_token");
-      
-      if (!accessToken) {
-        handleError(null, "This password reset link is invalid or has expired. Please request a new one.");
-      }
-    };
-
-    checkAccessToken();
+    const accessToken = new URLSearchParams(window.location.hash.substring(1)).get("access_token");
+    
+    if (!accessToken) {
+      handleError(new Error("This password reset link is invalid or has expired. Please request a new one."));
+    }
   }, [handleError]);
 
-  const handlePasswordUpdate = async (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormState({ loading: true, message: "", messageType: "" });
-
-    // Validate form and password
-    const isValid = validateForm(formData);
-    const validation = validatePassword(formData.password);
-
-    if (!isValid || !validation.isValid) {
-      setFormState({
-        loading: false,
-        message: !isValid ? "Please fix the errors below." : validation.errors[0],
-        messageType: "error",
-      });
-      return;
-    }
+    setFormState({ loading: true, message: null, messageType: null });
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: formData.password,
-      });
-
-      if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          handleError(error, "This password reset link has expired. Please request a new one.");
-        } else {
-          handleError(error, "An error occurred while updating your password. Please try again.");
-        }
+      if (!validateForm(formData)) {
+        setFormState({ loading: false });
         return;
       }
 
-      setSuccess("Your password has been updated successfully! Redirecting to login page...");
+      const validation = validatePassword(formData.password);
+      if (validation) {
+        setFormState({
+          loading: false,
+          message: validation,
+          messageType: "error"
+        });
+        return;
+      }
+
+      // Get the hash from the URL
+      const hash = window.location.hash;
+      if (!hash) {
+        handleError(new Error("No reset token found. Please request a new password reset."));
+        return;
+      }
+
+      // Parse the hash to get the access token
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const type = hashParams.get("type");
+      const accessToken = hashParams.get("access_token");
+
+      if (!accessToken || type !== "recovery") {
+        handleError(new Error("Invalid reset token. Please request a new password reset."));
+        return;
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        password: formData.password
+      });
+
+      if (error) throw error;
+
+      setSuccess("Password updated successfully! Redirecting to login...");
       resetForm();
 
-      // Redirect to login page after a delay
+      // Redirect to login page after a short delay
       setTimeout(() => {
         router.push("/login");
       }, 2000);
+
     } catch (error: unknown) {
-      if (error instanceof AuthError || error instanceof Error) {
+      if (error instanceof Error) {
         handleError(error);
       } else {
-        handleError(null, "An unexpected error occurred while updating your password. Please try again.");
+        handleError(new Error("An unexpected error occurred while updating your password. Please try again."));
       }
     }
   };
 
-  const passwordRequirements = getPasswordRequirements();
-
   return (
     <Layout>
       <AuthCard title="Set New Password">
-        <Form onSubmit={handlePasswordUpdate}>
+        <Form onSubmit={handleUpdatePassword}>
           <div>
             <Input
               id="password"
               type="password"
               value={formData.password}
-              onChange={(e) => setFormData({ password: e.target.value })}
+              onChange={(e) => updateField("password", e.target.value)}
               label="New Password"
               placeholder="Enter new password"
               required
@@ -159,8 +142,19 @@ export default function UpdatePassword() {
             <div className="mt-2 text-sm text-gray-500">
               <p>Your password must:</p>
               <ul className="list-disc pl-5 mt-1">
-                {passwordRequirements.map((req, index) => (
-                  <li key={index}>{req}</li>
+                {requirements.map((req, index) => (
+                  <li
+                    key={index}
+                    className={
+                      formData.password
+                        ? checkRequirement(formData.password, index)
+                          ? "text-green-600"
+                          : "text-red-600"
+                        : ""
+                    }
+                  >
+                    {req.label}
+                  </li>
                 ))}
               </ul>
             </div>
@@ -170,7 +164,7 @@ export default function UpdatePassword() {
             id="confirmPassword"
             type="password"
             value={formData.confirmPassword}
-            onChange={(e) => setFormData({ confirmPassword: e.target.value })}
+            onChange={(e) => updateField("confirmPassword", e.target.value)}
             label="Confirm Password"
             placeholder="Confirm new password"
             required

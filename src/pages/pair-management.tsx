@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
 import ProtectedRoute from "../components/ProtectedRoute";
 import Layout from "../components/Layout";
 import { useAuth } from "../contexts/AuthContext";
-import { Input, Button, Message } from "../components/AuthCard";
+import { Input, Message } from "../components/AuthCard";
 import { Select } from "../components/Form";
 
 interface Profile {
@@ -27,14 +27,6 @@ const GROUP_OPTIONS = [
   { value: "UES", label: "Upper Elementary School" },
   { value: "MHS", label: "Middle High School" },
 ];
-
-const ROLE_LEVELS = {
-  admin: 1,
-  staff: 2,
-  coordinator: 3,
-  tutor: 4,
-  tutee: 4,
-};
 
 export default function PairManagement() {
   const { user } = useAuth();
@@ -91,7 +83,7 @@ export default function PairManagement() {
   }, [user]);
 
   // Fetch tutors based on filters
-  const fetchTutors = async () => {
+  const fetchTutors = useCallback(async () => {
     try {
       let query = supabase
         .from("profiles")
@@ -116,10 +108,10 @@ export default function PairManagement() {
       console.error("Error fetching tutors:", error);
       setError("Failed to load tutors");
     }
-  };
+  }, [tutorGroup, tutorSearchTerm]);
 
   // Fetch tutees based on filters
-  const fetchTutees = async () => {
+  const fetchTutees = useCallback(async () => {
     try {
       let query = supabase
         .from("profiles")
@@ -144,10 +136,10 @@ export default function PairManagement() {
       console.error("Error fetching tutees:", error);
       setError("Failed to load tutees");
     }
-  };
+  }, [tuteeGroup, tuteeSearchTerm]);
 
   // Fetch existing pairs
-  const fetchExistingPairs = async () => {
+  const fetchExistingPairs = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("pair")
@@ -159,7 +151,7 @@ export default function PairManagement() {
       console.error("Error fetching pairs:", error);
       setError("Failed to load existing pairs");
     }
-  };
+  }, []);
 
   // Effect hooks for fetching data
   useEffect(() => {
@@ -168,7 +160,7 @@ export default function PairManagement() {
       fetchTutees();
       fetchExistingPairs();
     }
-  }, [tutorSearchTerm, tutorGroup, tuteeSearchTerm, tuteeGroup, loading, currentUserRole]);
+  }, [tutorSearchTerm, tutorGroup, tuteeSearchTerm, tuteeGroup, loading, currentUserRole, fetchTutors, fetchTutees, fetchExistingPairs]);
 
   // Create a new pair
   const handleCreatePair = async (tutorId: string, tuteeId: string) => {
@@ -284,32 +276,32 @@ export default function PairManagement() {
                 options={GROUP_OPTIONS}
               />
             </div>
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-3">
               {tutors.map((tutor) => (
                 <div
                   key={tutor.id}
-                  className={`p-4 rounded-lg border ${
+                  className={`p-4 rounded-lg border transform transition-all duration-200 ease-in-out ${
                     selectedTutor?.id === tutor.id
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 hover:border-blue-300"
-                  } cursor-pointer transition-colors duration-200`}
+                      ? "border-blue-500 bg-blue-50 shadow-md scale-[1.02]"
+                      : "border-gray-200 hover:border-blue-300 hover:shadow-sm hover:scale-[1.01]"
+                  } cursor-pointer`}
                   onClick={() => setSelectedTutor(tutor)}
                 >
                   <div className="flex justify-between items-center">
-                    <div className="flex-grow">
-                      <p className="font-medium text-gray-900">{`${tutor.last_name}, ${tutor.first_name}`}</p>
-                      <p className="text-sm text-gray-500">{tutor.group}</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {existingPairs.some(p => p.tutor_id === tutor.id) ? (
-                        <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                          Has Tutees
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
-                          No Tutees
-                        </span>
-                      )}
+                    <div className="flex-grow space-y-1">
+                      <p className="font-medium text-gray-900 text-lg leading-tight">{`${tutor.last_name}, ${tutor.first_name}`}</p>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{tutor.group}</span>
+                        {existingPairs.some(p => p.tutor_id === tutor.id) ? (
+                          <span className="px-2 py-0.5 text-sm font-medium bg-green-100 text-green-800 rounded-full">
+                            Has Tutees
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 text-sm font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                            No Tutees
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -340,40 +332,48 @@ export default function PairManagement() {
                   options={GROUP_OPTIONS}
                 />
               </div>
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 space-y-3">
                 {tutees.map((tutee) => {
                   const existingPair = existingPairs.find(
                     p => p.tutor_id === selectedTutor.id && p.tutee_id === tutee.id
                   );
+                  const isPairedWithOther = existingPairs.some(p => p.tutee_id === tutee.id && p.tutor_id !== selectedTutor.id);
+                  const isNotPaired = !existingPairs.some(p => p.tutee_id === tutee.id);
 
                   return (
                     <div
                       key={tutee.id}
-                      className="p-4 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors duration-200"
+                      className={`p-4 rounded-lg border transform transition-all duration-200 ease-in-out ${
+                        existingPair
+                          ? "border-green-200 bg-green-50 hover:border-green-300"
+                          : isPairedWithOther
+                          ? "border-red-200 bg-red-50"
+                          : "border-gray-200 hover:border-blue-300"
+                      } hover:shadow-sm`}
                     >
                       <div className="flex justify-between items-center">
-                        <div className="flex-grow min-w-0 mr-4">
-                          <p className="font-medium text-gray-900 truncate">{`${tutee.last_name}, ${tutee.first_name}`}</p>
-                          <div className="flex items-center space-x-2">
-                            <p className="text-sm text-gray-500">{tutee.group}</p>
-                            {existingPairs.some(p => p.tutee_id === tutee.id && p.tutor_id !== selectedTutor.id) && (
-                              <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                        <div className="flex-grow min-w-0 space-y-1">
+                          <p className="font-medium text-gray-900 text-lg leading-tight truncate">{`${tutee.last_name}, ${tutee.first_name}`}</p>
+                          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                            <span className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{tutee.group}</span>
+                            {isPairedWithOther && (
+                              <span className="px-2 py-0.5 text-sm font-medium bg-red-100 text-red-800 rounded-full whitespace-nowrap">
                                 Paired with another tutor
                               </span>
                             )}
-                            {!existingPairs.some(p => p.tutee_id === tutee.id) && (
-                              <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                            {isNotPaired && (
+                              <span className="px-2 py-0.5 text-sm font-medium bg-yellow-100 text-yellow-800 rounded-full">
                                 Not paired
                               </span>
                             )}
                           </div>
                         </div>
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 ml-4">
                           {existingPair ? (
                             <button
                               type="button"
                               onClick={() => handleDeletePair(existingPair.id)}
-                              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+                              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200 hover:scale-105 transform"
                             >
                               Remove Pair
                             </button>
@@ -381,8 +381,12 @@ export default function PairManagement() {
                             <button
                               type="button"
                               onClick={() => handleCreatePair(selectedTutor.id, tutee.id)}
-                              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-                              disabled={existingPairs.some(p => p.tutee_id === tutee.id)}
+                              className={`inline-flex items-center px-3 py-1.5 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 hover:scale-105 transform ${
+                                isPairedWithOther
+                                  ? "bg-gray-400 cursor-not-allowed"
+                                  : "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+                              }`}
+                              disabled={isPairedWithOther}
                             >
                               Add Pair
                             </button>
