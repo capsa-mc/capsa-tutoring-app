@@ -20,14 +20,6 @@ interface UserProfile {
   apply_role: Role | null
 }
 
-interface EditableField {
-  name: keyof UserProfile;
-  value: string | null | Role | Group;
-  type: 'text' | 'email' | 'tel' | 'select';
-  label: string;
-  options?: (Role | Group)[];
-}
-
 export default function ProfilePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -39,27 +31,6 @@ export default function ProfilePage() {
     id: string;
     email?: string;
   } | null>(null)
-
-  const getEditableFields = (profile: UserProfile | null): EditableField[] => [
-    { name: 'student_phone', value: profile?.student_phone || null, type: 'tel', label: 'Student Phone' },
-    { name: 'student_email', value: profile?.student_email || null, type: 'email', label: 'Student Email' },
-    { name: 'parent_phone', value: profile?.parent_phone || null, type: 'tel', label: 'Parent Phone' },
-    { name: 'parent_email', value: profile?.parent_email || null, type: 'email', label: 'Parent Email' },
-    { 
-      name: 'apply_role', 
-      value: profile?.apply_role || null, 
-      type: 'select', 
-      options: Object.values(Role),
-      label: 'Apply Role'
-    },
-    { 
-      name: 'group', 
-      value: profile?.group || null, 
-      type: 'select', 
-      options: Object.values(Group),
-      label: 'Group'
-    }
-  ]
 
   useEffect(() => {
     const supabase = createBrowserClient(
@@ -276,8 +247,8 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className={`${theme.layout.section.default} flex items-center justify-center min-h-[60vh]`}>
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className={`${theme.layout.section.default} flex items-center justify-center h-[calc(100vh-8rem)]`}>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
       </div>
     )
   }
@@ -287,88 +258,201 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-              <div className={`${theme.header.wrapper} px-4 py-5 sm:px-6 flex justify-between items-center`}>
-                <div>
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">Profile Information</h3>
-                  <p className="mt-1 max-w-2xl text-sm text-gray-500">Personal details and application.</p>
+    <div className={`${theme.colors.background.secondary}`}>
+      <div className="max-w-5xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+        <div className="space-y-3">
+          <div className={`${theme.colors.background.primary} shadow-lg rounded-2xl overflow-hidden`}>
+            {/* Profile Header */}
+            <div className="relative h-28 bg-gradient-to-r from-sky-500 to-sky-700">
+              <div className="absolute -bottom-10 left-8">
+                <div className={`w-20 h-20 rounded-full ${theme.colors.background.primary} shadow-md flex items-center justify-center overflow-hidden border-4 ${theme.colors.border.light}`}>
+                  <span className={`text-3xl ${theme.colors.text.secondary}`}>
+                    {profile?.first_name?.[0]?.toUpperCase() || profile?.student_email?.[0]?.toUpperCase() || '?'}
+                  </span>
                 </div>
+              </div>
+              <div className="absolute top-4 right-4">
                 {!editing ? (
                   <button
                     onClick={handleEdit}
-                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                    className={`px-4 py-2 ${theme.colors.background.primary} text-sky-500 hover:bg-sky-50 rounded-lg transition-colors shadow-sm`}
                   >
                     Edit Profile
                   </button>
                 ) : (
-                  <div className="flex space-x-4">
+                  <div className="space-x-2">
                     <button
                       onClick={handleSave}
                       disabled={saving}
-                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                      className={`px-4 py-2 bg-sky-500 text-white hover:bg-sky-600 rounded-lg transition-colors shadow-sm disabled:opacity-50`}
                     >
                       {saving ? 'Saving...' : 'Save'}
                     </button>
                     <button
                       onClick={handleCancel}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                      disabled={saving}
+                      className={`px-4 py-2 ${theme.colors.background.primary} text-sky-500 hover:bg-sky-50 rounded-lg transition-colors shadow-sm disabled:opacity-50`}
                     >
                       Cancel
                     </button>
                   </div>
                 )}
               </div>
+            </div>
 
-              <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
-                {profile && (
-                  <dl className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
-                    {getEditableFields(profile).map((field) => (
-                      <div key={field.name} className="sm:col-span-1">
-                        <dt className="text-sm font-medium text-gray-500">{field.label}</dt>
-                        <dd className="mt-1 text-sm text-gray-900">
-                          {editing ? (
-                            field.type === 'select' ? (
-                              <select
-                                value={editedProfile?.[field.name]?.toString() || ''}
-                                onChange={(e) => handleChange(field.name, e.target.value)}
-                                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md"
-                              >
-                                <option value="">Select {field.label}</option>
-                                {field.options?.map((option) => (
-                                  <option key={option} value={option}>
-                                    {option}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <input
-                                type={field.type}
-                                value={editedProfile?.[field.name]?.toString() || ''}
-                                onChange={(e) => handleChange(field.name, e.target.value)}
-                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm"
-                              />
-                            )
-                          ) : (
-                            field.value || 'Not set'
-                          )}
-                        </dd>
+            {/* Profile Content */}
+            <div className="px-8 pt-14 pb-6">
+              <h1 className={`text-2xl font-bold ${theme.colors.text.primary} mb-1`}>
+                {profile.first_name && profile.last_name 
+                  ? `${profile.first_name} ${profile.last_name}`
+                  : 'Name not set'}
+              </h1>
+              <p className={`${theme.colors.text.secondary} mb-6`}>{profile.student_email}</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Role Information */}
+                <div className="space-y-3">
+                  <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
+                    <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
+                      Current Role
+                    </h2>
+                    <p className={`${theme.colors.text.primary} font-medium`}>
+                      {profile.role || 'Not assigned'}
+                    </p>
+                  </div>
+
+                  <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
+                    <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
+                      Applied Role
+                    </h2>
+                    {editing ? (
+                      <select
+                        value={String(editedProfile.apply_role ?? '')}
+                        onChange={(e) => handleChange('apply_role', e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                      >
+                        <option value="">Select Role</option>
+                        {Object.values(Role).map((role) => (
+                          <option key={role} value={role}>
+                            {role}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className={`${theme.colors.text.primary} font-medium`}>
+                        {profile.apply_role || 'None'}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
+                    <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
+                      Group
+                    </h2>
+                    {editing ? (
+                      <select
+                        value={String(editedProfile.group ?? '')}
+                        onChange={(e) => handleChange('group', e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                      >
+                        <option value="">Select Group</option>
+                        {Object.values(Group).map((group) => (
+                          <option key={group} value={group}>
+                            {group}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className={`${theme.colors.text.primary} font-medium`}>
+                        {profile.group || 'Not assigned'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div className="space-y-3">
+                  <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
+                    <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
+                      Student Contact
+                    </h2>
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`block text-sm ${theme.colors.text.secondary} mb-1`}>Email</label>
+                        {editing ? (
+                          <input
+                            type="email"
+                            value={String(editedProfile.student_email ?? '')}
+                            onChange={(e) => handleChange('student_email', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                          />
+                        ) : (
+                          <p className={theme.colors.text.primary}>
+                            <span className="font-medium">Email:</span> {profile.student_email || 'Not set'}
+                          </p>
+                        )}
                       </div>
-                    ))}
-                  </dl>
-                )}
+                      <div>
+                        <label className={`block text-sm ${theme.colors.text.secondary} mb-1`}>Phone</label>
+                        {editing ? (
+                          <input
+                            type="tel"
+                            value={String(editedProfile.student_phone ?? '')}
+                            onChange={(e) => handleChange('student_phone', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                          />
+                        ) : (
+                          <p className={theme.colors.text.primary}>
+                            <span className="font-medium">Phone:</span> {profile.student_phone || 'Not set'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
+                    <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
+                      Parent Contact
+                    </h2>
+                    <div className="space-y-3">
+                      <div>
+                        <label className={`block text-sm ${theme.colors.text.secondary} mb-1`}>Email</label>
+                        {editing ? (
+                          <input
+                            type="email"
+                            value={String(editedProfile.parent_email ?? '')}
+                            onChange={(e) => handleChange('parent_email', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                          />
+                        ) : (
+                          <p className={theme.colors.text.primary}>
+                            <span className="font-medium">Email:</span> {profile.parent_email || 'Not set'}
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className={`block text-sm ${theme.colors.text.secondary} mb-1`}>Phone</label>
+                        {editing ? (
+                          <input
+                            type="tel"
+                            value={String(editedProfile.parent_phone ?? '')}
+                            onChange={(e) => handleChange('parent_phone', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                          />
+                        ) : (
+                          <p className={theme.colors.text.primary}>
+                            <span className="font-medium">Phone:</span> {profile.parent_phone || 'Not set'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
   )
-} 
+}
