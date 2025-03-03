@@ -63,14 +63,8 @@ export default function PairManagement() {
 
         if (userError) throw userError;
         setCurrentUserRole(userData.role);
-
-        // Only allow access to admin, staff, and coordinator
-        if (!["admin", "staff", "coordinator"].includes(userData.role)) {
-          setError("You don't have permission to access this page");
-          setLoading(false);
-          return;
-        }
-
+        
+        // 所有用户都可以访问此页面，无需额外检查
         setLoading(false);
       } catch (error) {
         console.error("Error:", error);

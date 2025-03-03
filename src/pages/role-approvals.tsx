@@ -59,12 +59,7 @@ export default function RoleApprovals() {
         if (userError) throw userError;
         setCurrentUserRole(userData.role);
 
-        // Only fetch if user has appropriate role
-        if (!["admin", "staff", "coordinator"].includes(userData.role)) {
-          setError("You don't have permission to access this page");
-          setLoading(false);
-          return;
-        }
+        // 所有用户都可以访问此页面，无需额外检查
       } catch (error) {
         console.error("Error:", error);
         setError("Failed to load data");

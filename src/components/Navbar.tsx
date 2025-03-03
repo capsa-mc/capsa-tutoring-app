@@ -77,14 +77,19 @@ export default function Navbar({ showAuthButtons = true }: NavbarProps) {
   };
 
   const isProtectedRoute = !["", "/login", "/register"].includes(router.pathname);
-  const canAccessAdminPages = userRole && ["admin", "staff", "coordinator"].includes(userRole);
 
-  const renderNavLinks = (isMobile = false) => (
-    <>
-      <NavLink href="/profile" currentPath={router.pathname} isMobile={isMobile}>
-        Profile
-      </NavLink>
-      {canAccessAdminPages && (
+  useEffect(() => {
+    console.log("Current path:", router.pathname);
+    console.log("Is protected route:", isProtectedRoute);
+    console.log("Current user role state:", userRole);
+  }, [userRole, router.pathname, isProtectedRoute]);
+
+  const renderNavLinks = (isMobile = false) => {
+    return (
+      <>
+        <NavLink href="/profile" currentPath={router.pathname} isMobile={isMobile}>
+          Profile
+        </NavLink>
         <>
           <NavLink href="/pair-management" currentPath={router.pathname} isMobile={isMobile}>
             Pair Management
@@ -93,9 +98,9 @@ export default function Navbar({ showAuthButtons = true }: NavbarProps) {
             Role Approvals
           </NavLink>
         </>
-      )}
-    </>
-  );
+      </>
+    );
+  };
 
   const renderAuthButtons = (isMobile = false) => {
     const buttonClasses = isMobile
