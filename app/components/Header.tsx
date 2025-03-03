@@ -8,6 +8,7 @@ type NavItem = {
   href?: string
   targetId?: string
   isSection: boolean
+  variant?: 'default' | 'primary' | 'secondary'
 }
 
 export default function Header() {
@@ -16,13 +17,26 @@ export default function Header() {
    * Current status:
    * - Home ('/'): Implemented - Main landing page
    * - About: Implemented as a section on the home page (scroll target)
-   * - Register ('/register'): Not implemented yet
+   * - Register ('/register'): Implemented - Registration page
+   * - Login ('/login'): Implemented - Login page
    */
   const navItems: NavItem[] = [
     { label: 'Home', href: '/', isSection: false },
     { label: 'About', targetId: 'about', isSection: true },
-    { label: 'Register', href: '/register', isSection: false },
+    { label: 'Login', href: '/login', isSection: false, variant: 'secondary' },
+    { label: 'Register', href: '/register', isSection: false, variant: 'primary' },
   ]
+
+  const getButtonStyles = (variant?: string) => {
+    switch (variant) {
+      case 'primary':
+        return `${theme.button.primary.base} ${theme.button.primary.default}`
+      case 'secondary':
+        return `px-6 py-2 rounded-lg font-medium transition-colors border border-sky-500 text-sky-500 hover:bg-sky-50 ml-2`
+      default:
+        return `${theme.header.nav.menu.link.base} ${theme.text.body.base} ${theme.header.nav.menu.link.hover}`
+    }
+  }
 
   return (
     <header className={theme.header.wrapper}>
@@ -51,7 +65,7 @@ export default function Header() {
                 <ScrollLink
                   key={item.targetId}
                   targetId={item.targetId}
-                  className={`${theme.header.nav.menu.link.base} ${theme.text.body.base} ${theme.header.nav.menu.link.hover}`}
+                  className={getButtonStyles()}
                 >
                   {item.label}
                 </ScrollLink>
@@ -59,11 +73,7 @@ export default function Header() {
                 <Link
                   key={item.href}
                   href={item.href || '/'}
-                  className={
-                    item.label === 'Register' 
-                      ? `${theme.button.primary.base} ${theme.button.primary.default}`
-                      : `${theme.header.nav.menu.link.base} ${theme.text.body.base} ${theme.header.nav.menu.link.hover}`
-                  }
+                  className={getButtonStyles(item.variant)}
                 >
                   {item.label}
                 </Link>

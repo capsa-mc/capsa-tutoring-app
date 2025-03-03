@@ -81,6 +81,11 @@ export const theme = {
       default: 'bg-sky-500 text-white hover:bg-sky-600',
       outline: 'border-2 border-sky-500 text-sky-500 hover:bg-sky-50',
     },
+    secondary: {
+      base: 'px-6 py-2 rounded-lg font-medium transition-colors',
+      default: 'border border-sky-500 text-sky-500 hover:bg-sky-50',
+      outline: 'text-sky-500 hover:text-sky-600',
+    },
     group: {
       vertical: 'flex flex-col gap-4',
       horizontal: 'flex flex-row gap-4',
