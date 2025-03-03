@@ -39,7 +39,10 @@ export const theme = {
     },
     grid: {
       features: 'grid gap-6 md:grid-cols-3',
-      footer: 'flex flex-col items-center gap-8 md:flex-row md:justify-between'
+      footer: 'flex flex-col items-center gap-8 md:flex-row md:justify-between',
+      form: {
+        row: 'grid md:grid-cols-2 gap-6',
+      }
     },
     flex: {
       center: 'flex items-center',
@@ -49,6 +52,14 @@ export const theme = {
         medium: 'gap-4',
         large: 'gap-6'
       }
+    },
+    auth: {
+      card: 'bg-white rounded-xl shadow-lg p-8 backdrop-blur-sm bg-white/90',
+      form: 'space-y-6',
+    },
+    height: {
+      header: '4rem',  // 64px
+      footer: '5rem',  // 80px
     }
   },
   spacing: {
@@ -97,7 +108,9 @@ export const theme = {
     gradient: {
       blue: 'bg-gradient-to-r from-sky-500 to-sky-400 bg-clip-text text-transparent',
       title: 'bg-gradient-to-r from-sky-800 via-sky-600 to-sky-400 bg-clip-text text-transparent font-extrabold tracking-tight drop-shadow-sm',
-    }
+    },
+    label: 'block text-base font-medium tracking-wide text-sky-900 mb-1.5',
+    error: 'text-sm text-red-600 mt-1',
   },
   header: {
     wrapper: 'sticky top-0 bg-white shadow-sm z-50',
@@ -129,6 +142,18 @@ export const theme = {
     nav: {
       wrapper: 'flex flex-col items-center gap-2 md:flex-row md:gap-12',
       links: 'flex gap-6'
+    }
+  },
+  input: {
+    base: 'block w-full px-4 py-3 rounded-lg border-slate-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 transition-colors',
+    error: 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500',
+    select: 'block w-full px-4 py-3 rounded-lg border-slate-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 bg-white',
+  },
+  form: {
+    group: 'space-y-2',
+    spacing: {
+      section: 'mt-6',
+      field: 'mt-4',
     }
   }
 } 
