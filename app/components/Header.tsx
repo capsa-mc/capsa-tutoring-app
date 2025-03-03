@@ -3,6 +3,13 @@ import Link from 'next/link'
 import { theme } from '../styles/theme'
 import ScrollLink from './ScrollLink'
 
+type NavItem = {
+  label: string
+  href?: string
+  targetId?: string
+  isSection: boolean
+}
+
 export default function Header() {
   /**
    * Navigation items configuration
@@ -11,7 +18,7 @@ export default function Header() {
    * - About: Implemented as a section on the home page (scroll target)
    * - Register ('/register'): Not implemented yet
    */
-  const navItems = [
+  const navItems: NavItem[] = [
     { label: 'Home', href: '/', isSection: false },
     { label: 'About', targetId: 'about', isSection: true },
     { label: 'Register', href: '/register', isSection: false },
@@ -40,7 +47,7 @@ export default function Header() {
           {/* Desktop Navigation */}
           <div className={theme.header.nav.menu.desktop}>
             {navItems.map((item) => (
-              item.isSection ? (
+              item.isSection && item.targetId ? (
                 <ScrollLink
                   key={item.targetId}
                   targetId={item.targetId}
@@ -51,7 +58,7 @@ export default function Header() {
               ) : (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  href={item.href || '/'}
                   className={
                     item.label === 'Register' 
                       ? `${theme.button.primary.base} ${theme.button.primary.default}`

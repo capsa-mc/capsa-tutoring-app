@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import { theme } from './styles/theme'
@@ -38,7 +37,7 @@ export default function Home() {
               <div className={theme.layout.card}>
                 <h3 className={`${theme.text.heading.h4} ${theme.spacing.element}`}>Personalized Learning</h3>
                 <p className={theme.text.body.small}>
-                  One-to-one tutoring sessions tailored to each student's unique needs and learning style.
+                  One-to-one tutoring sessions tailored to each student&apos;s unique needs and learning style.
                 </p>
               </div>
               <div className={theme.layout.card}>
