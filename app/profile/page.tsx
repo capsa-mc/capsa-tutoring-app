@@ -6,6 +6,13 @@ import { createBrowserClient } from '@supabase/ssr'
 import { theme } from '@/app/styles/theme'
 import { Role, Group } from '@/types/database/schema'
 
+const formatPhoneNumber = (phoneNumber: string | null): string => {
+  if (!phoneNumber) return 'Not set';
+  const cleaned = phoneNumber.replace(/\D/g, '');
+  if (cleaned.length !== 10) return phoneNumber;
+  return `(${cleaned.slice(0, 3)})${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+};
+
 interface UserProfile {
   id: string
   first_name: string | null
@@ -200,8 +207,7 @@ export default function ProfilePage() {
         parent_email: editedProfile.parent_email || null,
         group: editedProfile.group || null,
         role: editedProfile.role,  // Don't modify role directly
-        apply_role: editedProfile.apply_role || null,
-        updated_at: new Date().toISOString()
+        apply_role: editedProfile.apply_role || null
       };
 
       console.log('Saving profile:', profileData);
@@ -388,7 +394,7 @@ export default function ProfilePage() {
                           />
                         ) : (
                           <p className={theme.colors.text.primary}>
-                            <span className="font-medium">Email:</span> {profile.student_email || 'Not set'}
+                            {profile.student_email || 'Not set'}
                           </p>
                         )}
                       </div>
@@ -403,7 +409,7 @@ export default function ProfilePage() {
                           />
                         ) : (
                           <p className={theme.colors.text.primary}>
-                            <span className="font-medium">Phone:</span> {profile.student_phone || 'Not set'}
+                            {formatPhoneNumber(profile.student_phone)}
                           </p>
                         )}
                       </div>
@@ -426,7 +432,7 @@ export default function ProfilePage() {
                           />
                         ) : (
                           <p className={theme.colors.text.primary}>
-                            <span className="font-medium">Email:</span> {profile.parent_email || 'Not set'}
+                            {profile.parent_email || 'Not set'}
                           </p>
                         )}
                       </div>
@@ -441,7 +447,7 @@ export default function ProfilePage() {
                           />
                         ) : (
                           <p className={theme.colors.text.primary}>
-                            <span className="font-medium">Phone:</span> {profile.parent_phone || 'Not set'}
+                            {formatPhoneNumber(profile.parent_phone)}
                           </p>
                         )}
                       </div>

@@ -35,6 +35,7 @@ export default function RegisterPage() {
             id: response.data.user.id,
             first_name: formData.first_name,
             last_name: formData.last_name,
+            student_email: formData.email,
             apply_role: formData.apply_role,
           })
 

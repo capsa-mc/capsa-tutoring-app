@@ -34,7 +34,7 @@ export default function CallbackPage() {
     handleEmailVerification()
 
     const timer = setTimeout(() => {
-      router.push('/')
+      router.push('/login')
     }, 5000)
 
     return () => clearTimeout(timer)
@@ -56,7 +56,7 @@ export default function CallbackPage() {
             </p>
             
             <p className={theme.text.body.small}>
-              You will be redirected to the home page in a few seconds...
+              You will be redirected to the login page in a few seconds...
             </p>
           </div>
         </div>

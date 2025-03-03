@@ -57,8 +57,7 @@ export async function POST(request: Request) {
         parent_phone: body.parent_phone,
         parent_email: body.parent_email,
         group: body.group,
-        apply_role: body.apply_role,
-        updated_at: new Date().toISOString()
+        apply_role: body.apply_role
       })
       .select()
       .single()
