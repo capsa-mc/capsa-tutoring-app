@@ -19,6 +19,26 @@ interface UserProfile {
   apply_role: Role | null
 }
 
+// Helper function to get role color
+const getRoleColor = (role: Role | null): string => {
+  if (!role) return 'bg-gray-400'; // Default color for no role
+  
+  switch (role) {
+    case Role.Admin:
+      return 'bg-purple-500';
+    case Role.Staff:
+      return 'bg-blue-500';
+    case Role.Coordinator:
+      return 'bg-green-500';
+    case Role.Tutor:
+      return 'bg-yellow-500';
+    case Role.Tutee:
+      return 'bg-sky-500';
+    default:
+      return 'bg-gray-400';
+  }
+};
+
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -192,7 +212,14 @@ export default function ProfilePage() {
           <div className="bg-white shadow-md rounded-lg overflow-hidden">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h1 className={theme.text.heading.h2}>My Profile</h1>
+                <div className="flex items-center">
+                  <h1 className={theme.text.heading.h2}>My Profile</h1>
+                  {profile.role && (
+                    <span className={`ml-3 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleColor(profile.role as Role)} text-white`}>
+                      {profile.role}
+                    </span>
+                  )}
+                </div>
                 <div>
                   {editing ? (
                     <div className="flex space-x-2">
@@ -365,7 +392,9 @@ export default function ProfilePage() {
                         Role
                       </h2>
                       <p className={`${theme.colors.text.primary} font-medium`}>
-                        {profile.role || 'Not assigned'}
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleColor(profile.role as Role)} text-white`}>
+                          {profile.role || 'Not assigned'}
+                        </span>
                       </p>
                     </div>
                     
@@ -374,7 +403,11 @@ export default function ProfilePage() {
                         Apply Role
                       </h2>
                       <p className={`${theme.colors.text.primary} font-medium`}>
-                        {profile.apply_role || 'Not applied'}
+                        {profile.apply_role ? (
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-sky-500 text-white`}>
+                            {profile.apply_role}
+                          </span>
+                        ) : 'Not applied'}
                       </p>
                     </div>
                   </div>
