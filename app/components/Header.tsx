@@ -105,7 +105,7 @@ export default function Header() {
           </div>
           
           {/* Desktop Navigation */}
-          <div className={theme.header.nav.menu.desktop}>
+          <div className={theme.header.nav.menu.wrapper}>
             {navItems.map((item) => (
               item.isSection && item.targetId ? (
                 <ScrollLink
@@ -117,7 +117,7 @@ export default function Header() {
                 </ScrollLink>
               ) : item.label === 'Logout' ? (
                 <button
-                  key="logout"
+                  key={item.label}
                   onClick={handleLogout}
                   className={getButtonStyles(item.variant)}
                 >
@@ -125,8 +125,8 @@ export default function Header() {
                 </button>
               ) : (
                 <Link
-                  key={item.href}
-                  href={item.href || '/'}
+                  key={item.label}
+                  href={item.href || '#'}
                   className={getButtonStyles(item.variant)}
                 >
                   {item.label}
@@ -134,13 +134,6 @@ export default function Header() {
               )
             ))}
           </div>
-
-          {/* Mobile Menu Button */}
-          <button className={theme.header.nav.menu.mobile}>
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
         </nav>
       </div>
     </header>

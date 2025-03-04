@@ -11,37 +11,40 @@ export const theme = {
       light: 'text-sky-500',    // lighter navy for accents
     },
     text: {
-      primary: 'text-slate-900',   // dark slate for main text
-      secondary: 'text-slate-600', // slate for secondary text
+      primary: 'text-gray-900',
+      secondary: 'text-gray-600',
       light: 'text-slate-400',    // light slate for subtle text
       white: 'text-white',     // white text
+      error: 'text-red-600'
     },
     background: {
       primary: 'bg-white',   // white
-      secondary: 'bg-slate-50', // very light slate
+      secondary: 'bg-gray-50',
       dark: 'bg-sky-900',     // navy blue for dark sections
-      gradient: 'bg-gradient-to-b from-sky-50 to-white',
+      gradient: 'bg-gradient-to-b from-sky-50 to-white'
     },
     border: {
-      light: 'border-slate-200',    // light slate
+      light: 'border-white',
       dark: 'border-slate-700',     // dark slate
+      base: 'border-gray-200'
     }
   },
   layout: {
     container: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8',
     section: {
-      default: 'py-12 md:py-16',
-      hero: 'pt-12 pb-16 md:pt-20 md:pb-24',
+      default: 'py-12'
     },
     card: 'p-6 rounded-lg shadow-sm bg-white',
     maxWidth: {
-      sm: 'max-w-2xl mx-auto',
+      sm: 'max-w-md',
+      md: 'max-w-lg',
+      lg: 'max-w-xl'
     },
     grid: {
       features: 'grid gap-6 md:grid-cols-3',
       footer: 'flex flex-col items-center gap-8 md:flex-row md:justify-between',
       form: {
-        row: 'grid md:grid-cols-2 gap-6',
+        row: 'grid grid-cols-1 md:grid-cols-2 gap-4'
       }
     },
     flex: {
@@ -54,8 +57,8 @@ export const theme = {
       }
     },
     auth: {
-      card: 'bg-white rounded-xl shadow-lg p-8 backdrop-blur-sm bg-white/90',
-      form: 'space-y-6',
+      card: 'bg-white shadow-lg rounded-2xl p-8',
+      form: 'space-y-6'
     },
     height: {
       header: '4rem',  // 64px
@@ -63,7 +66,7 @@ export const theme = {
     }
   },
   spacing: {
-    section: 'mb-8',
+    section: 'mb-6',
     element: 'mb-4',
     small: 'mb-2',
     padding: {
@@ -77,9 +80,9 @@ export const theme = {
   },
   button: {
     primary: {
-      base: 'px-6 py-2 rounded-lg font-medium transition-colors',
-      default: 'bg-sky-500 text-white hover:bg-sky-600',
-      outline: 'border-2 border-sky-500 text-sky-500 hover:bg-sky-50',
+      base: 'rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2',
+      default: 'bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-500',
+      outline: 'border border-sky-500 text-sky-500 hover:bg-sky-50'
     },
     secondary: {
       base: 'px-6 py-2 rounded-lg font-medium transition-colors',
@@ -99,39 +102,38 @@ export const theme = {
       right: 'text-right',
     },
     heading: {
-      h1: 'text-5xl md:text-6xl font-bold tracking-tight',
-      h2: 'text-3xl md:text-4xl font-bold text-sky-500',
-      h3: 'text-2xl md:text-3xl font-bold text-slate-900',
-      h4: 'text-xl md:text-2xl font-semibold text-slate-900',
+      h1: 'text-4xl font-bold',
+      h2: 'text-3xl font-bold',
+      h3: 'text-2xl font-bold',
+      h4: 'text-xl font-bold'
     },
     body: {
-      large: 'text-lg md:text-xl text-slate-600',
-      base: 'text-base text-slate-600',
-      small: 'text-sm md:text-base text-slate-600',
+      large: 'text-lg',
+      base: 'text-base',
+      small: 'text-sm',
       tiny: 'text-sm text-slate-600',
     },
     gradient: {
       blue: 'bg-gradient-to-r from-sky-500 to-sky-400 bg-clip-text text-transparent',
       title: 'bg-gradient-to-r from-sky-800 via-sky-600 to-sky-400 bg-clip-text text-transparent font-extrabold tracking-tight drop-shadow-sm',
     },
-    label: 'block text-base font-medium tracking-wide text-sky-900 mb-1.5',
-    error: 'text-sm text-red-600 mt-1',
+    label: 'block text-sm font-medium text-gray-700',
+    error: 'mt-2 text-sm text-red-600',
   },
   header: {
-    wrapper: 'sticky top-0 bg-white shadow-sm z-50',
+    wrapper: 'bg-white shadow-sm',
     nav: {
-      wrapper: 'flex items-center justify-between py-4',
+      wrapper: 'flex items-center justify-between h-16',
       logo: {
-        wrapper: 'flex items-center gap-3',
-        text: 'hidden md:block font-semibold text-xl tracking-wide text-sky-500',
-        image: 'object-contain'
+        wrapper: 'flex items-center space-x-2',
+        image: 'w-auto h-6',
+        text: 'text-xl font-bold text-gray-900'
       },
       menu: {
-        desktop: 'hidden md:flex items-center gap-6',
-        mobile: 'md:hidden p-2',
+        wrapper: 'hidden md:flex md:items-center md:space-x-6',
         link: {
-          base: 'transition-colors',
-          hover: 'hover:text-sky-500'
+          base: 'px-3 py-2 rounded-md text-sm font-medium',
+          hover: 'hover:bg-gray-100'
         }
       }
     }
@@ -150,15 +152,15 @@ export const theme = {
     }
   },
   input: {
-    base: 'block w-full px-4 py-3 rounded-lg border-slate-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 transition-colors',
+    base: 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm',
     error: 'border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500',
-    select: 'block w-full px-4 py-3 rounded-lg border-slate-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 bg-white',
+    select: 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm'
   },
   form: {
-    group: 'space-y-2',
+    group: 'space-y-1',
     spacing: {
       section: 'mt-6',
-      field: 'mt-4',
+      element: 'mt-4'
     }
   }
 } 

@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { registerUser } from '@/lib/auth'
 import { RegisterFormData } from '@/types/auth'
-import { theme } from '@/app/styles/theme'
 import { Role } from '@/types/database/schema'
 import { supabase } from '@/lib/supabase'
+import { AuthForm, FormInput, FormSelect } from '@/app/components'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState<RegisterFormData>({
@@ -70,133 +70,96 @@ export default function RegisterPage() {
     }))
   }
 
-  return (
-    <section className={theme.layout.section.default}>
-      <div className={theme.layout.container}>
-        <div className={`${theme.layout.maxWidth.sm} mx-auto`}>
-          <div className={theme.layout.auth.card}>
-            <h1 className={`${theme.text.heading.h2} ${theme.text.align.center} ${theme.spacing.section}`}>
-              Create Your Account
-            </h1>
-            
-            {success ? (
-              <div className="text-center">
-                <div className={`${theme.text.heading.h3} ${theme.spacing.element} text-green-600`}>
-                  Registration Successful!
-                </div>
-                <p className={`${theme.text.body.base} ${theme.spacing.element}`}>
-                  Thank you for registering. Please check your email to verify your account.
-                </p>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className={theme.layout.auth.form}>
-                <div className={theme.layout.grid.form.row}>
-                  <div className={theme.form.group}>
-                    <label htmlFor="first_name" className={theme.text.label}>
-                      First Name
-                    </label>
-                    <input
-                      id="first_name"
-                      name="first_name"
-                      type="text"
-                      required
-                      value={formData.first_name}
-                      onChange={handleChange}
-                      className={theme.input.base}
-                      placeholder="Enter first name"
-                    />
-                  </div>
-
-                  <div className={theme.form.group}>
-                    <label htmlFor="last_name" className={theme.text.label}>
-                      Last Name
-                    </label>
-                    <input
-                      id="last_name"
-                      name="last_name"
-                      type="text"
-                      required
-                      value={formData.last_name}
-                      onChange={handleChange}
-                      className={theme.input.base}
-                      placeholder="Enter last name"
-                    />
-                  </div>
-                </div>
-
-                <div className={`${theme.layout.grid.form.row} ${theme.form.spacing.section}`}>
-                  <div className={theme.form.group}>
-                    <label htmlFor="email" className={theme.text.label}>
-                      Email Address
-                    </label>
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={handleChange}
-                      className={theme.input.base}
-                      placeholder="Enter your email"
-                    />
-                  </div>
-
-                  <div className={theme.form.group}>
-                    <label htmlFor="apply_role" className={theme.text.label}>
-                      I apply for
-                    </label>
-                    <select
-                      id="apply_role"
-                      name="apply_role"
-                      value={formData.apply_role}
-                      onChange={handleChange}
-                      className={theme.input.select}
-                      required
-                    >
-                      <option value={Role.Admin}>{Role.Admin}</option>
-                      <option value={Role.Staff}>{Role.Staff}</option>
-                      <option value={Role.Coordinator}>{Role.Coordinator}</option>
-                      <option value={Role.Tutor}>{Role.Tutor}</option>
-                      <option value={Role.Tutee}>{Role.Tutee}</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className={`${theme.form.group} ${theme.form.spacing.section}`}>
-                  <label htmlFor="password" className={theme.text.label}>
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    className={theme.input.base}
-                    placeholder="Create a password (min. 8 characters)"
-                    minLength={8}
-                  />
-                </div>
-
-                {error && (
-                  <div className={theme.text.error}>
-                    {error}
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={`${theme.button.primary.base} ${theme.button.primary.default} w-full mt-6 py-3 text-base font-medium ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
-                >
-                  {loading ? 'Creating Account...' : 'Create Account'}
-                </button>
-              </form>
-            )}
-          </div>
+  if (success) {
+    return (
+      <AuthForm
+        title="Registration Successful!"
+        error={error}
+        onSubmit={(e) => e.preventDefault()}
+        loading={false}
+        submitText="Return to Login"
+        loadingText=""
+      >
+        <div className="text-center">
+          <p className="mb-4">
+            Thank you for registering. Please check your email to verify your account.
+          </p>
         </div>
+      </AuthForm>
+    )
+  }
+
+  return (
+    <AuthForm
+      title="Create Your Account"
+      error={error}
+      onSubmit={handleSubmit}
+      loading={loading}
+      submitText="Create Account"
+      loadingText="Creating Account..."
+    >
+      <div className={`grid grid-cols-1 md:grid-cols-2 gap-4`}>
+        <FormInput
+          id="first_name"
+          name="first_name"
+          type="text"
+          label="First Name"
+          value={formData.first_name}
+          onChange={handleChange}
+          required
+          placeholder="Enter first name"
+        />
+
+        <FormInput
+          id="last_name"
+          name="last_name"
+          type="text"
+          label="Last Name"
+          value={formData.last_name}
+          onChange={handleChange}
+          required
+          placeholder="Enter last name"
+        />
       </div>
-    </section>
+
+      <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 mt-4`}>
+        <FormInput
+          id="email"
+          name="email"
+          type="email"
+          label="Email Address"
+          value={formData.email}
+          onChange={handleChange}
+          required
+          placeholder="Enter your email"
+        />
+
+        <FormSelect
+          id="apply_role"
+          name="apply_role"
+          label="I apply for"
+          value={formData.apply_role}
+          onChange={handleChange}
+          options={Object.values(Role).map(role => ({
+            value: role,
+            label: role
+          }))}
+          required
+        />
+      </div>
+
+      <FormInput
+        id="password"
+        name="password"
+        type="password"
+        label="Password"
+        value={formData.password}
+        onChange={handleChange}
+        required
+        placeholder="Create a password (min. 8 characters)"
+        minLength={8}
+        className="mt-4"
+      />
+    </AuthForm>
   )
 } 

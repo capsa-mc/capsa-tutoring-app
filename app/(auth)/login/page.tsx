@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { theme } from '@/app/styles/theme'
+import { AuthForm, FormInput } from '@/app/components'
 
 interface LoginFormData {
   email: string
@@ -58,64 +58,36 @@ export default function LoginPage() {
   }
 
   return (
-    <section className={theme.layout.section.default}>
-      <div className={theme.layout.container}>
-        <div className={`${theme.layout.maxWidth.sm} mx-auto`}>
-          <div className={theme.layout.auth.card}>
-            <h1 className={`${theme.text.heading.h2} ${theme.text.align.center} ${theme.spacing.section}`}>
-              Sign In
-            </h1>
-            
-            <form onSubmit={handleSubmit} className={theme.layout.auth.form}>
-              <div className={theme.form.group}>
-                <label htmlFor="email" className={theme.text.label}>
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={theme.input.base}
-                  placeholder="Enter your email"
-                />
-              </div>
+    <AuthForm
+      title="Sign In"
+      error={error}
+      onSubmit={handleSubmit}
+      loading={loading}
+      submitText="Sign In"
+      loadingText="Signing In..."
+    >
+      <FormInput
+        id="email"
+        name="email"
+        type="email"
+        label="Email Address"
+        value={formData.email}
+        onChange={handleChange}
+        required
+        placeholder="Enter your email"
+      />
 
-              <div className={`${theme.form.group} ${theme.form.spacing.section}`}>
-                <label htmlFor="password" className={theme.text.label}>
-                  Password
-                </label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={theme.input.base}
-                  placeholder="Enter your password"
-                />
-              </div>
-
-              {error && (
-                <div className={theme.text.error}>
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className={`${theme.button.primary.base} ${theme.button.primary.default} w-full mt-6 py-3 text-base font-medium ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
-              >
-                {loading ? 'Signing In...' : 'Sign In'}
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </section>
+      <FormInput
+        id="password"
+        name="password"
+        type="password"
+        label="Password"
+        value={formData.password}
+        onChange={handleChange}
+        required
+        placeholder="Enter your password"
+        minLength={8}
+      />
+    </AuthForm>
   )
 } 
