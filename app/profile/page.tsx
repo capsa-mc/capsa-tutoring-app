@@ -214,11 +214,9 @@ export default function ProfilePage() {
               <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center">
                   <h1 className={theme.text.heading.h2}>My Profile</h1>
-                  {profile.role && (
-                    <span className={`ml-3 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleColor(profile.role as Role)} text-white`}>
-                      {profile.role}
-                    </span>
-                  )}
+                  <span className={`ml-3 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleColor(profile.role as Role)} text-white`}>
+                    {profile.role || 'None'}
+                  </span>
                 </div>
                 <div>
                   {editing ? (
