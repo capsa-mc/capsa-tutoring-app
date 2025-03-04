@@ -32,16 +32,16 @@ export const theme = {
   layout: {
     container: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8',
     section: {
-      default: 'py-12'
+      default: 'py-12 sm:py-16'
     },
-    card: 'p-6 rounded-lg shadow-sm bg-white',
+    card: 'p-8 rounded-2xl bg-white shadow-xl border border-gray-100',
     maxWidth: {
       sm: 'max-w-md',
       md: 'max-w-lg',
       lg: 'max-w-xl'
     },
     grid: {
-      features: 'grid gap-6 md:grid-cols-3',
+      features: 'grid gap-8 md:grid-cols-3',
       footer: 'flex flex-col items-center gap-8 md:flex-row md:justify-between',
       form: {
         row: 'grid grid-cols-1 md:grid-cols-2 gap-4'
@@ -57,7 +57,7 @@ export const theme = {
       }
     },
     auth: {
-      card: 'bg-white shadow-lg rounded-2xl p-8',
+      card: 'bg-white shadow-xl rounded-2xl p-8 border border-gray-100 backdrop-blur-sm backdrop-filter',
       form: 'space-y-6'
     },
     height: {
@@ -80,19 +80,19 @@ export const theme = {
   },
   button: {
     primary: {
-      base: 'rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2',
+      base: 'px-6 py-3 rounded-lg font-medium transition-all duration-200 text-base focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-sm hover:shadow-md active:shadow-sm',
       default: 'bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-500',
-      outline: 'border border-sky-500 text-sky-500 hover:bg-sky-50'
+      outline: 'border-2 border-sky-500 text-sky-500 hover:bg-sky-50 focus:ring-sky-500'
     },
     secondary: {
-      base: 'px-6 py-2 rounded-lg font-medium transition-colors',
-      default: 'border border-sky-500 text-sky-500 hover:bg-sky-50',
+      base: 'px-6 py-3 rounded-lg font-medium transition-all duration-200 text-base',
+      default: 'border-2 border-sky-500 text-sky-500 hover:bg-sky-50',
       outline: 'text-sky-500 hover:text-sky-600',
     },
     group: {
       vertical: 'flex flex-col gap-4',
       horizontal: 'flex flex-row gap-4',
-      responsive: 'flex flex-col sm:flex-row gap-4',
+      responsive: 'flex flex-col sm:flex-row gap-4 justify-center',
     }
   },
   text: {

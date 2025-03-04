@@ -22,11 +22,11 @@ export default function AuthForm({
   loadingText
 }: AuthFormProps) {
   return (
-    <section className={theme.layout.section.default}>
+    <section className={`${theme.layout.section.default} min-h-[calc(100vh-8rem)] bg-gradient-to-b from-sky-50/50 to-white/50`}>
       <div className={theme.layout.container}>
         <div className={`${theme.layout.maxWidth.sm} mx-auto`}>
           <div className={theme.layout.auth.card}>
-            <h1 className={`${theme.text.heading.h2} ${theme.text.align.center} ${theme.spacing.section}`}>
+            <h1 className={`${theme.text.gradient.title} text-3xl text-center mb-8`}>
               {title}
             </h1>
             
@@ -34,7 +34,7 @@ export default function AuthForm({
               {children}
 
               {error && (
-                <div className={theme.text.error}>
+                <div className={`${theme.text.error} text-center bg-red-50 p-3 rounded-lg`}>
                   {error}
                 </div>
               )}
@@ -42,7 +42,7 @@ export default function AuthForm({
               <button
                 type="submit"
                 disabled={loading}
-                className={`${theme.button.primary.base} ${theme.button.primary.default} w-full mt-6 py-3 text-base font-medium ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
+                className={`${theme.button.primary.base} ${theme.button.primary.default} w-full mt-8 ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
               >
                 {loading ? loadingText : submitText}
               </button>
