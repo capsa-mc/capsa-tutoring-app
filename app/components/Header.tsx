@@ -134,6 +134,7 @@ export default function Header() {
 
   const protectedNavItems: NavItem[] = [
     { label: 'Applications', href: '/applications', isSection: false, variant: 'secondary', protected: true, adminOnly: true },
+    { label: 'Pairs', href: '/pairs', isSection: false, variant: 'secondary', protected: true, adminOnly: true },
     { label: 'Profile', href: '/profile', isSection: false, variant: 'secondary', protected: true },
     { label: 'Logout', href: '#', isSection: false, variant: 'primary', protected: true },
   ]
@@ -149,7 +150,11 @@ export default function Header() {
     }
   }
 
-  const isProtectedRoute = pathname?.startsWith('/profile') || pathname?.startsWith('/sessions') || pathname?.startsWith('/admin') || pathname?.startsWith('/applications')
+  const isProtectedRoute = pathname?.startsWith('/profile') || 
+                          pathname?.startsWith('/sessions') || 
+                          pathname?.startsWith('/admin') || 
+                          pathname?.startsWith('/applications') ||
+                          pathname?.startsWith('/pairs')
 
   // Filter out admin-only items if user is not an admin
   const filteredProtectedNavItems = protectedNavItems.filter(item => 

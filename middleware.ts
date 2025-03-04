@@ -39,7 +39,9 @@ export async function middleware(request: NextRequest) {
   )
 
   // Check auth condition for protected routes
-  if (request.nextUrl.pathname.startsWith('/profile') || request.nextUrl.pathname.startsWith('/applications')) {
+  if (request.nextUrl.pathname.startsWith('/profile') || 
+      request.nextUrl.pathname.startsWith('/applications') ||
+      request.nextUrl.pathname.startsWith('/pairs')) {
     try {
       // Use getUser instead of getSession for better security
       const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -51,8 +53,9 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(redirectUrl)
       }
 
-      // For applications route, check if user has appropriate role
-      if (request.nextUrl.pathname.startsWith('/applications')) {
+      // For applications and pairs routes, check if user has appropriate role
+      if (request.nextUrl.pathname.startsWith('/applications') || 
+          request.nextUrl.pathname.startsWith('/pairs')) {
         try {
           // Get user profile to check role
           const { data: profile, error: profileError } = await supabase
@@ -66,7 +69,7 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/', request.url))
           }
 
-          // Allow Admin, Staff, and Coordinator roles to access applications route
+          // Allow Admin, Staff, and Coordinator roles to access applications and pairs routes
           if (!profile || (profile.role !== 'Admin' && profile.role !== 'Staff' && profile.role !== 'Coordinator')) {
             // User doesn't have appropriate role, redirect to home
             return NextResponse.redirect(new URL('/', request.url))
@@ -90,5 +93,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/profile/:path*', '/applications/:path*']
+  matcher: ['/profile/:path*', '/applications/:path*', '/pairs/:path*']
 } 
