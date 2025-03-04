@@ -17,6 +17,19 @@ interface UserProfile {
   group: Group | null
   role: Role | null
   apply_role: Role | null
+  is_paired?: boolean
+  tutor_id?: string | null
+  paired_tutor?: {
+    id: string
+    name: string
+    pair_id?: number
+  } | null
+  paired_tutees?: Array<{
+    id: string
+    name: string
+    pair_id?: number
+  }> | null
+  tutee_count?: number
 }
 
 // Helper function to get role color
@@ -459,6 +472,53 @@ export default function ProfilePage() {
                         {profile.group || 'Not assigned'}
                       </p>
                     </div>
+                    
+                    {/* 配对信息 */}
+                    {profile.role === Role.Tutor && (
+                      <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
+                        <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
+                          Paired Tutees
+                        </h2>
+                        {profile.paired_tutees && profile.paired_tutees.length > 0 ? (
+                          <div className="space-y-2">
+                            {profile.paired_tutees.map(tutee => (
+                              <div key={tutee.id} className="flex items-center">
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800`}>
+                                  {tutee.name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className={`${theme.colors.text.primary} font-medium`}>
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800`}>
+                              No paired tutees
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {profile.role === Role.Tutee && (
+                      <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
+                        <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
+                          Paired Tutor
+                        </h2>
+                        {profile.is_paired && profile.paired_tutor ? (
+                          <p className={`${theme.colors.text.primary} font-medium`}>
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800`}>
+                              {profile.paired_tutor.name}
+                            </span>
+                          </p>
+                        ) : (
+                          <p className={`${theme.colors.text.primary} font-medium`}>
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800`}>
+                              Not paired with any tutor
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
