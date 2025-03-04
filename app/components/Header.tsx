@@ -3,10 +3,11 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { theme } from '../styles/theme'
 import ScrollLink from './ScrollLink'
+import { Role } from '@/types/database/schema'
+import { createClient, getCurrentUser, getUserProfile } from '@/lib/supabase'
 
 type NavItem = {
   label: string
@@ -15,43 +16,110 @@ type NavItem = {
   isSection: boolean
   variant?: 'default' | 'primary' | 'secondary'
   protected?: boolean
+  adminOnly?: boolean
 }
 
 export default function Header() {
-  const router = useRouter()
   const pathname = usePathname()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userRole, setUserRole] = useState<Role | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    let isMounted = true;
+    let subscription: { unsubscribe: () => void } | null = null;
 
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setIsLoggedIn(!!session)
+      if (!isMounted) return;
+      
+      setIsLoading(true)
+      try {
+        // Use the safer getUser method
+        const user = await getCurrentUser()
+        
+        if (!user) {
+          setIsLoggedIn(false)
+          setUserRole(null)
+          setIsLoading(false)
+          return
+        }
+        
+        setIsLoggedIn(true)
+        
+        // Get user profile
+        const profile = await getUserProfile(user.id)
+        
+        if (profile) {
+          setUserRole(profile.role as Role)
+        }
+      } catch (error) {
+        console.error('Error checking session:', error)
+        setIsLoggedIn(false)
+        setUserRole(null)
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
     }
 
-    checkSession()
+    // Initialize Supabase client safely
+    const initializeAuth = async () => {
+      try {
+        const supabase = createClient()
+        
+        // Set up auth state change listener with error handling
+        try {
+          const { data } = supabase.auth.onAuthStateChange(async (event) => {
+            if (!isMounted) return;
+            
+            if (event === 'SIGNED_IN') {
+              checkSession()
+            } else if (event === 'SIGNED_OUT') {
+              setIsLoggedIn(false)
+              setUserRole(null)
+            }
+          })
+          
+          subscription = data.subscription;
+        } catch (error) {
+          console.error('Error setting up auth state change listener:', error)
+        }
+        
+        // Initial session check
+        await checkSession()
+      } catch (error) {
+        console.error('Error initializing auth:', error)
+        if (isMounted) {
+          setIsLoading(false)
+          setIsLoggedIn(false)
+        }
+      }
+    }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      setIsLoggedIn(event === 'SIGNED_IN')
-    })
+    initializeAuth()
 
     return () => {
-      subscription.unsubscribe()
+      isMounted = false;
+      if (subscription) {
+        try {
+          subscription.unsubscribe()
+        } catch (error) {
+          console.error('Error unsubscribing from auth state change:', error)
+        }
+      }
     }
   }, [])
 
   const handleLogout = async () => {
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-
-    await supabase.auth.signOut()
-    router.push('/')
+    try {
+      const supabase = createClient()
+      await supabase.auth.signOut()
+      // Use window.location for a full page reload
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
   }
 
   const publicNavItems: NavItem[] = [
@@ -65,6 +133,7 @@ export default function Header() {
   ]
 
   const protectedNavItems: NavItem[] = [
+    { label: 'Applications', href: '/applications', isSection: false, variant: 'secondary', protected: true, adminOnly: true },
     { label: 'Profile', href: '/profile', isSection: false, variant: 'secondary', protected: true },
     { label: 'Logout', href: '#', isSection: false, variant: 'primary', protected: true },
   ]
@@ -80,9 +149,14 @@ export default function Header() {
     }
   }
 
-  const isProtectedRoute = pathname?.startsWith('/profile') || pathname?.startsWith('/sessions')
+  const isProtectedRoute = pathname?.startsWith('/profile') || pathname?.startsWith('/sessions') || pathname?.startsWith('/admin') || pathname?.startsWith('/applications')
 
-  const navItems = [...publicNavItems, ...(isLoggedIn || isProtectedRoute ? protectedNavItems : authNavItems)]
+  // Filter out admin-only items if user is not an admin
+  const filteredProtectedNavItems = protectedNavItems.filter(item => 
+    !item.adminOnly || (item.adminOnly && (userRole === Role.Admin || userRole === Role.Staff || userRole === Role.Coordinator))
+  )
+
+  const navItems = [...publicNavItems, ...(isLoggedIn || isProtectedRoute ? filteredProtectedNavItems : authNavItems)]
 
   return (
     <header className={theme.header.wrapper}>
@@ -106,33 +180,37 @@ export default function Header() {
           
           {/* Desktop Navigation */}
           <div className={theme.header.nav.menu.wrapper}>
-            {navItems.map((item) => (
-              item.isSection && item.targetId ? (
-                <ScrollLink
-                  key={item.targetId}
-                  targetId={item.targetId}
-                  className={getButtonStyles()}
-                >
-                  {item.label}
-                </ScrollLink>
-              ) : item.label === 'Logout' ? (
-                <button
-                  key={item.label}
-                  onClick={handleLogout}
-                  className={getButtonStyles(item.variant)}
-                >
-                  {item.label}
-                </button>
-              ) : (
-                <Link
-                  key={item.label}
-                  href={item.href || '#'}
-                  className={getButtonStyles(item.variant)}
-                >
-                  {item.label}
-                </Link>
-              )
-            ))}
+            {isLoading ? (
+              <div className="animate-pulse h-8 w-32 bg-gray-200 rounded"></div>
+            ) : (
+              navItems.map((item) => (
+                item.isSection && item.targetId ? (
+                  <ScrollLink
+                    key={item.targetId}
+                    targetId={item.targetId}
+                    className={getButtonStyles()}
+                  >
+                    {item.label}
+                  </ScrollLink>
+                ) : item.label === 'Logout' ? (
+                  <button
+                    key={item.label}
+                    onClick={handleLogout}
+                    className={getButtonStyles(item.variant)}
+                  >
+                    {item.label}
+                  </button>
+                ) : (
+                  <Link
+                    key={item.label}
+                    href={item.href || '#'}
+                    className={getButtonStyles(item.variant)}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              ))
+            )}
           </div>
         </nav>
       </div>

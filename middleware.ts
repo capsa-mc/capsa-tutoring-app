@@ -38,17 +38,47 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Get the session
-  const { data: { session }, error } = await supabase.auth.getSession()
-
-  if (error) {
-    console.error('Auth error:', error)
-  }
-
   // Check auth condition for protected routes
-  if (request.nextUrl.pathname.startsWith('/profile')) {
-    if (!session) {
-      // Auth condition not met, redirect to login page
+  if (request.nextUrl.pathname.startsWith('/profile') || request.nextUrl.pathname.startsWith('/applications')) {
+    try {
+      // Use getUser instead of getSession for better security
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      
+      if (userError || !user) {
+        // Auth condition not met, redirect to login page
+        const redirectUrl = new URL('/login', request.url)
+        redirectUrl.searchParams.set('redirectedFrom', request.nextUrl.pathname)
+        return NextResponse.redirect(redirectUrl)
+      }
+
+      // For applications route, check if user has appropriate role
+      if (request.nextUrl.pathname.startsWith('/applications')) {
+        try {
+          // Get user profile to check role
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+
+          if (profileError) {
+            console.error('Profile error:', profileError)
+            return NextResponse.redirect(new URL('/', request.url))
+          }
+
+          // Allow Admin, Staff, and Coordinator roles to access applications route
+          if (!profile || (profile.role !== 'Admin' && profile.role !== 'Staff' && profile.role !== 'Coordinator')) {
+            // User doesn't have appropriate role, redirect to home
+            return NextResponse.redirect(new URL('/', request.url))
+          }
+        } catch (profileError) {
+          console.error('Error checking profile:', profileError)
+          return NextResponse.redirect(new URL('/', request.url))
+        }
+      }
+    } catch (error) {
+      console.error('Auth error:', error)
+      // Auth error, redirect to login page
       const redirectUrl = new URL('/login', request.url)
       redirectUrl.searchParams.set('redirectedFrom', request.nextUrl.pathname)
       return NextResponse.redirect(redirectUrl)
@@ -60,5 +90,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/profile/:path*']
+  matcher: ['/profile/:path*', '/applications/:path*']
 } 
