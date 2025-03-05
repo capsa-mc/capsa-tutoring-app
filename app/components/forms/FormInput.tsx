@@ -28,8 +28,8 @@ export default function FormInput({
   className
 }: FormInputProps) {
   return (
-    <div className={`${theme.form.group} ${className || ''}`}>
-      <label htmlFor={id} className={theme.text.label}>
+    <div className={`space-y-2 ${className || ''}`}>
+      <label htmlFor={id} className="block text-base font-medium text-gray-800">
         {label}
       </label>
       <input
@@ -39,7 +39,7 @@ export default function FormInput({
         required={required}
         value={value}
         onChange={onChange}
-        className={theme.input.base}
+        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 text-base py-2.5"
         placeholder={placeholder}
         minLength={minLength}
       />
