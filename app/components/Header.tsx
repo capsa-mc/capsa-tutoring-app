@@ -141,6 +141,7 @@ export default function Header() {
   const protectedNavItems: NavItem[] = [
     { label: 'Applications', href: '/applications', isSection: false, variant: 'secondary', protected: true, adminOnly: true },
     { label: 'Pairs', href: '/pairs', isSection: false, variant: 'secondary', protected: true, adminOnly: true },
+    { label: 'Sessions', href: '/sessions', isSection: false, variant: 'secondary', protected: true, adminOnly: true },
     { label: 'Profile', href: '/profile', isSection: false, variant: 'secondary', protected: true },
     { label: 'Logout', href: '#', isSection: false, variant: 'primary', protected: true },
   ]
