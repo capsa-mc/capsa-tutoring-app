@@ -18,6 +18,9 @@ export default function Footer() {
             <p className={`${theme.footer.text.primary} mt-2`}>
               Supporting K12 education since 1988
             </p>
+            <p className={`${theme.footer.text.primary} mt-2`}>
+              Built by Zhendong Chen and AI.
+            </p>
           </div>
           <nav className={theme.footer.nav.wrapper}>
             <Link href="/" className={theme.footer.text.primary}>Home</Link>
