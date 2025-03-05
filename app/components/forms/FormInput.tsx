@@ -1,7 +1,5 @@
 'use client'
 
-import { theme } from '@/app/styles/theme'
-
 interface FormInputProps {
   id: string
   name: string

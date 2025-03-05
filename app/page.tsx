@@ -1,6 +1,5 @@
 import { PageLayout } from './components'
 import { theme } from './styles/theme'
-import ScrollLink from './components/ScrollLink'
 import Link from 'next/link'
 
 export default function HomePage() {

@@ -1,7 +1,5 @@
 'use client'
 
-import { theme } from '@/app/styles/theme'
-
 interface FormSelectProps {
   id: string
   name: string
