@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { registerUser } from '@/lib/auth'
 import { RegisterFormData } from '@/types/auth'
 import { Role } from '@/types/database/schema'
@@ -8,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { AuthForm, FormInput, FormSelect } from '@/app/components'
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [formData, setFormData] = useState<RegisterFormData>({
     email: '',
     password: '',
@@ -70,14 +72,19 @@ export default function RegisterPage() {
     }))
   }
 
+  const handleReturnHome = (e: React.FormEvent) => {
+    e.preventDefault()
+    router.push('/')
+  }
+
   if (success) {
     return (
       <AuthForm
         title="Registration Successful!"
         error={error}
-        onSubmit={(e) => e.preventDefault()}
+        onSubmit={handleReturnHome}
         loading={false}
-        submitText="Return to Login"
+        submitText="Return to Homepage"
         loadingText=""
       >
         <div className="text-center">
