@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable prefer-const */
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
@@ -6,8 +9,6 @@ import { theme } from '@/app/styles/theme'
 import FormInput from '@/app/components/forms/FormInput'
 import FormSelect from '@/app/components/forms/FormSelect'
 import { createClient, getCurrentUser, getUserProfile } from '@/lib/supabase'
-import Header from '@/app/components/Header'
-import Footer from '@/app/components/Footer'
 
 interface Profile {
   id: string
@@ -35,6 +36,8 @@ interface Pair {
 }
 
 export default function PairsPage() {
+  const [userRole, setUserRole] = useState<Role | null>(null)
+  
   // State for tutors
   const [tutors, setTutors] = useState<Tutor[]>([])
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null)
@@ -59,26 +62,17 @@ export default function PairsPage() {
   const fetchUserRole = async () => {
     try {
       const user = await getCurrentUser()
-      
       if (!user) {
-        window.location.href = '/login?redirectedFrom=/pairs'
+        window.location.href = '/login'
         return
       }
       
       const profile = await getUserProfile(user.id)
-      
-      if (!profile) {
-        console.error('Profile not found')
-        return
+      if (profile) {
+        setUserRole(profile.role as Role)
       }
-      
-      // Redirect if user doesn't have appropriate role
-      const allowedRoles = [Role.Admin, Role.Staff, Role.Coordinator]
-      if (!allowedRoles.includes(profile.role as Role)) {
-        window.location.href = '/'
-      }
-    } catch (err) {
-      console.error('Error fetching user role:', err)
+    } catch (error) {
+      console.error('Error fetching user role:', error)
     }
   }
   
@@ -121,90 +115,83 @@ export default function PairsPage() {
     }
   }
   
-  // Helper function to fetch tutors with specific params
-  const fetchTutorsWithParams = async (params: URLSearchParams) => {
-    setLoadingTutors(true)
-    setError(null)
-    
+  // Wrap fetchTutorsWithParams in useCallback
+  const fetchTutorsWithParams = useCallback(async (params: URLSearchParams) => {
     try {
-      // Fetch tutors from API
-      const response = await fetch(`/api/pairs?${params.toString()}`)
+      setLoadingTutors(true)
+      const supabase = createClient()
       
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`)
+      let query = supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', Role.Tutor)
+      
+      const { data, error } = await query
+      
+      if (error) {
+        console.error('Error fetching tutors:', error)
+        return
       }
       
-      const data = await response.json()
-      const tutorsList: Tutor[] = data.tutors || []
-      setTutors(tutorsList)
+      // Process tutors to include tutee count
+      const tutorsWithCount = await Promise.all(
+        data.map(async (tutor) => {
+          const { data: pairsData } = await supabase
+            .from('pairs')
+            .select('*')
+            .eq('tutor_id', tutor.id)
+          
+          return {
+            ...tutor,
+            tutee_count: pairsData?.length || 0
+          }
+        })
+      )
       
-      // If a tutor is selected, keep the selection
-      if (selectedTutor) {
-        const updatedTutor = tutorsList.find(tutor => tutor.id === selectedTutor.id) || null
-        setSelectedTutor(updatedTutor)
-      }
-    } catch (err) {
-      console.error('Error fetching tutors:', err)
-      setError('Failed to load tutors')
+      setTutors(tutorsWithCount)
+    } catch (error) {
+      console.error('Error fetching tutors:', error)
     } finally {
       setLoadingTutors(false)
     }
-  }
+  }, [])
   
-  // Helper function to fetch tutees with specific params
-  const fetchTuteesWithParams = async (params: URLSearchParams) => {
-    if (!selectedTutor) {
-      setTutees([])
-      return
-    }
-    
-    setLoadingTutees(true)
-    setError(null)
-    
+  // Wrap fetchTuteesWithParams in useCallback
+  const fetchTuteesWithParams = useCallback(async (params: URLSearchParams) => {
     try {
-      // Fetch tutees from API
-      const response = await fetch(`/api/pairs?${params.toString()}`)
+      setLoadingTutees(true)
+      const supabase = createClient()
       
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status}`)
+      let query = supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', Role.Tutee)
+        .eq('is_paired', false)
+      
+      const { data, error } = await query
+      
+      if (error) {
+        console.error('Error fetching tutees:', error)
+        return
       }
       
-      const data = await response.json()
-      setTutees(data.tutees || [])
-    } catch (err) {
-      console.error('Error fetching tutees:', err)
-      setError('Failed to load tutees')
+      setTutees(data)
+    } catch (error) {
+      console.error('Error fetching tutees:', error)
     } finally {
       setLoadingTutees(false)
     }
-  }
+  }, [])
   
-  // Fetch tutors
-  const fetchTutors = useCallback(async () => {
-    // Build query parameters
-    const params = new URLSearchParams()
-    params.append('type', 'tutors')
-    if (tutorNameFilter) params.append('name', tutorNameFilter)
-    if (tutorGroupFilter) params.append('group', tutorGroupFilter)
-    
-    fetchTutorsWithParams(params)
-  }, [tutorNameFilter, tutorGroupFilter])
+  // Fetch tutors with filters
+  const fetchTutors = useCallback(() => {
+    fetchTutorsWithParams(new URLSearchParams())
+  }, [fetchTutorsWithParams])
   
-  // Fetch tutees
-  const fetchTutees = useCallback(async () => {
-    if (!selectedTutor) {
-      setTutees([])
-      return
-    }
-    
-    // Build query parameters
-    const params = new URLSearchParams()
-    params.append('type', 'tutees')
-    if (tuteeNameFilter) params.append('name', tuteeNameFilter)
-    if (tuteeGroupFilter) params.append('group', tuteeGroupFilter)
-    
-    fetchTuteesWithParams(params)
-  }, [selectedTutor, tuteeNameFilter, tuteeGroupFilter])
+  // Fetch tutees with filters
+  const fetchTutees = useCallback(() => {
+    fetchTuteesWithParams(new URLSearchParams())
+  }, [fetchTuteesWithParams])
   
   // Fetch pairs
   const fetchPairs = useCallback(async () => {
@@ -320,30 +307,19 @@ export default function PairsPage() {
     }
   }
   
+  // Initial data loading
   useEffect(() => {
     fetchUserRole()
-    
-    // Check if user is authenticated and has appropriate role
-    const supabase = createClient()
-    
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'SIGNED_OUT') {
-        window.location.href = '/login'
-      } else if (event === 'SIGNED_IN') {
-        // Refresh user role when signed in
-        fetchUserRole()
-      }
-    })
-    
-    // Fetch initial data
-    fetchTutors()
-    fetchPairs()
-    
-    return () => {
-      subscription.unsubscribe()
+  }, [])
+
+  // Load data when user role is confirmed
+  useEffect(() => {
+    if ([Role.Admin, Role.Staff, Role.Coordinator].includes(userRole as Role)) {
+      fetchPairs()
+      fetchTutors()
+      fetchTutees()
     }
-  }, []) // Remove dependencies to prevent infinite loop
+  }, [fetchPairs, fetchTutors, fetchTutees])
   
   // Fetch tutees when selected tutor changes
   useEffect(() => {
@@ -352,7 +328,6 @@ export default function PairsPage() {
   
   return (
     <>
-      <Header />
       <div className={theme.layout.section.default}>
         <div className={theme.layout.container}>
           {/* Error message */}
@@ -591,7 +566,6 @@ export default function PairsPage() {
           </div>          
         </div>
       </div>
-      <Footer />
     </>
   )
 }

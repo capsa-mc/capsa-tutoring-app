@@ -24,6 +24,7 @@ export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userRole, setUserRole] = useState<Role | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     let isMounted = true;
@@ -111,6 +112,11 @@ export default function Header() {
     }
   }, [])
 
+  // Close mobile menu when changing routes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
   const handleLogout = async () => {
     try {
       const supabase = createClient()
@@ -139,14 +145,20 @@ export default function Header() {
     { label: 'Logout', href: '#', isSection: false, variant: 'primary', protected: true },
   ]
 
-  const getButtonStyles = (variant?: string) => {
+  const getButtonStyles = (variant?: string, isMobile: boolean = false) => {
     switch (variant) {
       case 'primary':
-        return `${theme.button.primary.base} ${theme.button.primary.default}`
+        return isMobile 
+          ? `w-full text-center py-3 rounded-lg font-medium transition-colors bg-sky-500 text-white hover:bg-sky-600 mb-2`
+          : `${theme.button.primary.base} ${theme.button.primary.default}`
       case 'secondary':
-        return `px-6 py-2 rounded-lg font-medium transition-colors border border-sky-500 text-sky-500 hover:bg-sky-50 ml-2`
+        return isMobile
+          ? `w-full text-center py-3 rounded-lg font-medium transition-colors border border-sky-500 text-sky-500 hover:bg-sky-50 mb-2`
+          : `px-6 py-2 rounded-lg font-medium transition-colors border border-sky-500 text-sky-500 hover:bg-sky-50 ml-2`
       default:
-        return `${theme.header.nav.menu.link.base} ${theme.text.body.base} ${theme.header.nav.menu.link.hover}`
+        return isMobile
+          ? `w-full text-center py-3 text-gray-800 hover:bg-gray-100 rounded-lg mb-2`
+          : `${theme.header.nav.menu.link.base} ${theme.text.body.base} ${theme.header.nav.menu.link.hover}`
     }
   }
 
@@ -162,6 +174,10 @@ export default function Header() {
   )
 
   const navItems = [...publicNavItems, ...(isLoggedIn || isProtectedRoute ? filteredProtectedNavItems : authNavItems)]
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
 
   return (
     <header className={theme.header.wrapper}>
@@ -181,6 +197,25 @@ export default function Header() {
             <div className={theme.header.nav.logo.text}>
               CAPSA-MC
             </div>
+          </div>
+          
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <button 
+              onClick={toggleMobileMenu}
+              className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
           </div>
           
           {/* Desktop Navigation */}
@@ -218,6 +253,47 @@ export default function Header() {
             )}
           </div>
         </nav>
+        
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden py-4 px-2 bg-white border-t border-gray-100">
+            {isLoading ? (
+              <div className="animate-pulse h-40 bg-gray-200 rounded"></div>
+            ) : (
+              <div className="flex flex-col space-y-1">
+                {navItems.map((item) => (
+                  item.isSection && item.targetId ? (
+                    <ScrollLink
+                      key={item.targetId}
+                      targetId={item.targetId}
+                      className={getButtonStyles(undefined, true)}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {item.label}
+                    </ScrollLink>
+                  ) : item.label === 'Logout' ? (
+                    <button
+                      key={item.label}
+                      onClick={handleLogout}
+                      className={getButtonStyles(item.variant, true)}
+                    >
+                      {item.label}
+                    </button>
+                  ) : (
+                    <Link
+                      key={item.label}
+                      href={item.href || '#'}
+                      className={getButtonStyles(item.variant, true)}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  )
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </header>
   )

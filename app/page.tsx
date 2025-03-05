@@ -1,6 +1,7 @@
 import { PageLayout } from './components'
 import { theme } from './styles/theme'
 import ScrollLink from './components/ScrollLink'
+import Link from 'next/link'
 
 export default function HomePage() {
   return (
@@ -18,12 +19,12 @@ export default function HomePage() {
               Empowering students through personalized tutoring
             </p>
             <div className={theme.button.group.responsive}>
-              <ScrollLink
-                targetId="about"
+              <Link
+                href="/login"
                 className={`${theme.button.primary.base} ${theme.button.primary.default}`}
               >
-                Learn More
-              </ScrollLink>
+                Sign In
+              </Link>
               <a
                 href="/register"
                 className={`${theme.button.primary.base} ${theme.button.primary.outline}`}

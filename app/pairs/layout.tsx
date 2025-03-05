@@ -1,10 +1,7 @@
+import { ReactNode } from 'react'
 import { PageLayout } from '@/app/components'
 
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function PairsLayout({ children }: { children: ReactNode }) {
   return (
     <PageLayout>
       {children}
