@@ -23,9 +23,9 @@ export enum Role {
 }
 
 export enum SessionType {
-  Mix = 'Mix',
-  Onsite = 'Onsite',
-  Remote = 'Remote'
+  Tutoring = 'Tutoring',
+  Training = 'Training',
+  Adhoc = 'Adhoc'
 }
 
 export interface Database {
@@ -80,6 +80,7 @@ export interface Database {
           end_time: string
           date: string
           type: SessionType
+          comment: string | null
         }
         Insert: {
           id?: number
@@ -88,6 +89,7 @@ export interface Database {
           end_time: string
           date: string
           type: SessionType
+          comment?: string | null
         }
         Update: {
           id?: number
@@ -96,6 +98,7 @@ export interface Database {
           end_time?: string
           date?: string
           type?: SessionType
+          comment?: string | null
         }
       }
       pairs: {
@@ -115,24 +118,21 @@ export interface Database {
           tutee_id?: string | null
         }
       }
-      attendance: {
+      attendances: {
         Row: {
           id: number
           session_id: number | null
-          tutor_id: string | null
-          tutee_id: string | null
+          user_id: string | null
         }
         Insert: {
           id?: number
           session_id?: number | null
-          tutor_id?: string | null
-          tutee_id?: string | null
+          user_id?: string | null
         }
         Update: {
           id?: number
           session_id?: number | null
-          tutor_id?: string | null
-          tutee_id?: string | null
+          user_id?: string | null
         }
       }
       contents: {
