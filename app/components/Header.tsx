@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { theme } from '../styles/theme'
 import ScrollLink from './ScrollLink'
@@ -17,6 +17,7 @@ type NavItem = {
   variant?: 'default' | 'primary' | 'secondary'
   protected?: boolean
   adminOnly?: boolean
+  children?: NavItem[]
 }
 
 export default function Header() {
@@ -25,6 +26,8 @@ export default function Header() {
   const [userRole, setUserRole] = useState<Role | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false)
+  const adminMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let isMounted = true;
@@ -115,7 +118,22 @@ export default function Header() {
   // Close mobile menu when changing routes
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    setIsAdminMenuOpen(false);
   }, [pathname]);
+
+  // Close admin menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (adminMenuRef.current && !adminMenuRef.current.contains(event.target as Node)) {
+        setIsAdminMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -138,11 +156,23 @@ export default function Header() {
     { label: 'Register', href: '/register', isSection: false, variant: 'primary', protected: false },
   ]
 
+  const adminSubItems: NavItem[] = [
+    { label: 'Applications', href: '/applications', isSection: false, variant: 'default', protected: true, adminOnly: true },
+    { label: 'Pairs', href: '/pairs', isSection: false, variant: 'default', protected: true, adminOnly: true },
+    { label: 'Sessions', href: '/sessions', isSection: false, variant: 'default', protected: true, adminOnly: true },
+    { label: 'Attendances', href: '/attendances', isSection: false, variant: 'default', protected: true, adminOnly: true },
+  ]
+
   const protectedNavItems: NavItem[] = [
-    { label: 'Applications', href: '/applications', isSection: false, variant: 'secondary', protected: true, adminOnly: true },
-    { label: 'Pairs', href: '/pairs', isSection: false, variant: 'secondary', protected: true, adminOnly: true },
-    { label: 'Sessions', href: '/sessions', isSection: false, variant: 'secondary', protected: true, adminOnly: true },
-    { label: 'Attendances', href: '/attendances', isSection: false, variant: 'secondary', protected: true, adminOnly: true },
+    { 
+      label: 'Admin', 
+      href: '#', 
+      isSection: false, 
+      variant: 'secondary', 
+      protected: true, 
+      adminOnly: true,
+      children: adminSubItems
+    },
     { label: 'Profile', href: '/profile', isSection: false, variant: 'secondary', protected: true },
     { label: 'Logout', href: '#', isSection: false, variant: 'primary', protected: true },
   ]
@@ -180,6 +210,10 @@ export default function Header() {
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const toggleAdminMenu = () => {
+    setIsAdminMenuOpen(!isAdminMenuOpen);
   };
 
   return (
@@ -226,8 +260,60 @@ export default function Header() {
             {isLoading ? (
               <div className="animate-pulse h-8 w-32 bg-gray-200 rounded"></div>
             ) : (
-              navItems.map((item) => (
-                item.isSection && item.targetId ? (
+              navItems.map((item) => {
+                if (item.label === 'Admin' && item.children) {
+                  return (
+                    <div key={item.label} className="relative" ref={adminMenuRef}>
+                      <button
+                        onClick={toggleAdminMenu}
+                        className={`${getButtonStyles(item.variant)} flex items-center group relative`}
+                        aria-expanded={isAdminMenuOpen}
+                      >
+                        <span className="flex items-center">
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className="h-5 w-5 mr-1 text-sky-500" 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          {item.label}
+                        </span>
+                        <svg 
+                          xmlns="http://www.w3.org/2000/svg" 
+                          className={`ml-1 h-4 w-4 transition-transform text-sky-500 ${isAdminMenuOpen ? 'rotate-180' : ''}`} 
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      
+                      {isAdminMenuOpen && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-100 overflow-hidden animate-fadeIn">
+                          {item.children.map((subItem, index) => (
+                            <Link
+                              key={subItem.label}
+                              href={subItem.href || '#'}
+                              className={`block px-4 py-3 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-600 transition-colors border-l-2 border-transparent hover:border-sky-500 ${
+                                pathname === subItem.href ? 'bg-sky-50 text-sky-600 border-l-2 border-sky-500 font-medium' : ''
+                              } animate-slideIn`}
+                              style={{ animationDelay: `${index * 50}ms` }}
+                            >
+                              {subItem.label}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                
+                return item.isSection && item.targetId ? (
                   <ScrollLink
                     key={item.targetId}
                     targetId={item.targetId}
@@ -251,8 +337,8 @@ export default function Header() {
                   >
                     {item.label}
                   </Link>
-                )
-              ))
+                );
+              })
             )}
           </div>
         </nav>
@@ -264,8 +350,60 @@ export default function Header() {
               <div className="animate-pulse h-40 bg-gray-200 rounded"></div>
             ) : (
               <div className="flex flex-col space-y-1">
-                {navItems.map((item) => (
-                  item.isSection && item.targetId ? (
+                {navItems.map((item) => {
+                  if (item.label === 'Admin' && item.children) {
+                    return (
+                      <div key={item.label} className="mb-2">
+                        <button
+                          onClick={toggleAdminMenu}
+                          className={`${getButtonStyles(item.variant, true)} flex items-center justify-between`}
+                        >
+                          <span className="flex items-center">
+                            <svg 
+                              xmlns="http://www.w3.org/2000/svg" 
+                              className="h-5 w-5 mr-2 text-sky-500" 
+                              fill="none" 
+                              viewBox="0 0 24 24" 
+                              stroke="currentColor"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            {item.label}
+                          </span>
+                          <svg 
+                            xmlns="http://www.w3.org/2000/svg" 
+                            className={`ml-1 h-4 w-4 transition-transform text-sky-500 ${isAdminMenuOpen ? 'rotate-180' : ''}`} 
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        
+                        {isAdminMenuOpen && (
+                          <div className="mt-2 mb-3 border border-gray-100 rounded-md overflow-hidden bg-gray-50 animate-fadeIn">
+                            {item.children.map((subItem, index) => (
+                              <Link
+                                key={subItem.label}
+                                href={subItem.href || '#'}
+                                className={`block py-3 px-4 text-sm hover:bg-sky-50 hover:text-sky-600 transition-colors border-l-2 border-transparent hover:border-sky-500 ${
+                                  pathname === subItem.href ? 'bg-sky-50 text-sky-600 border-l-2 border-sky-500 font-medium' : 'text-gray-700'
+                                } animate-slideIn`}
+                                style={{ animationDelay: `${index * 50}ms` }}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                              >
+                                {subItem.label}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  
+                  return item.isSection && item.targetId ? (
                     <ScrollLink
                       key={item.targetId}
                       targetId={item.targetId}
@@ -291,8 +429,8 @@ export default function Header() {
                     >
                       {item.label}
                     </Link>
-                  )
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
