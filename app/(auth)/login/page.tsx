@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { AuthForm, FormInput } from '@/app/components'
+import Link from 'next/link'
 
 interface LoginFormData {
   email: string
@@ -88,6 +89,19 @@ export default function LoginPage() {
         placeholder="Enter your password"
         minLength={8}
       />
+
+      <div className="flex justify-between items-center mt-4">
+        <div className="text-sm">
+          <Link href="/forgot-password" className="text-sky-600 hover:text-sky-800">
+            Forgot your password?
+          </Link>
+        </div>
+        <div className="text-sm">
+          <Link href="/register" className="text-sky-600 hover:text-sky-800">
+            Create an account
+          </Link>
+        </div>
+      </div>
     </AuthForm>
   )
 } 
