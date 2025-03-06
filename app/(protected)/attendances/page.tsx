@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Group, Role, SessionType } from '@/types/database/schema'
+import { Group, Role, SessionType, AttendanceType } from '@/types/database/schema'
 import { format } from 'date-fns'
 
 interface Session {
@@ -26,6 +26,7 @@ interface Attendance {
   id: number
   session_id: number | null
   user_id: string | null
+  attendance_type: AttendanceType
 }
 
 export default function AttendancesPage() {
@@ -221,7 +222,8 @@ export default function AttendancesPage() {
         },
         body: JSON.stringify({
           session_id: selectedSessionId,
-          user_id: userId
+          user_id: userId,
+          attendance_type: AttendanceType.Present
         })
       })
       
