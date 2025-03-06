@@ -28,6 +28,12 @@ export enum SessionType {
   Adhoc = 'Adhoc'
 }
 
+export enum AttendanceType {
+  Present = 'Present',
+  Excused = 'Excused',
+  Absent = 'Absent'
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -84,7 +90,7 @@ export interface Database {
         }
         Insert: {
           id?: number
-          location: string
+          location?: string
           start_time: string
           end_time: string
           date: string
@@ -121,18 +127,21 @@ export interface Database {
       attendances: {
         Row: {
           id: number
-          session_id: number | null
-          user_id: string | null
+          session_id: number
+          user_id: string
+          attendance_type: AttendanceType
         }
         Insert: {
           id?: number
-          session_id?: number | null
-          user_id?: string | null
+          session_id: number
+          user_id: string
+          attendance_type: AttendanceType
         }
         Update: {
           id?: number
-          session_id?: number | null
-          user_id?: string | null
+          session_id?: number
+          user_id?: string
+          attendance_type?: AttendanceType
         }
       }
       contents: {
@@ -166,6 +175,7 @@ export interface Database {
       group: Group
       role: Role
       session_type: SessionType
+      attendance_type: AttendanceType
     }
   }
 }

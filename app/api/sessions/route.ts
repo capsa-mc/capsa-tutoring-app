@@ -186,4 +186,40 @@ export async function DELETE(request: Request) {
     console.error('Error in DELETE /api/sessions:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    // Verify user access
+    const auth = await verifyUserAccess()
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+    
+    const supabase = await createServerSupabaseClient()
+    
+    // Get session data and ID from request
+    const sessionData = await request.json()
+    const { id, ...updateData } = sessionData
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Session ID is required' }, { status: 400 })
+    }
+    
+    // Update the session
+    const { data, error } = await supabase
+      .from('sessions')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+    
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+    
+    return NextResponse.json({ data })
+  } catch (error) {
+    console.error('Error in PATCH /api/sessions:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 } 
