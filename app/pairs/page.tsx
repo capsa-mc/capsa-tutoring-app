@@ -148,6 +148,9 @@ export default function PairsPage() {
         })
       )
       
+      // Sort tutors by tutee count (ascending) - tutors with 0 tutees will be first
+      tutorsWithCount.sort((a, b) => a.tutee_count - b.tutee_count)
+      
       setTutors(tutorsWithCount)
     } catch (error) {
       console.error('Error fetching tutors:', error)
@@ -166,8 +169,21 @@ export default function PairsPage() {
         .from('profiles')
         .select('*')
         .eq('role', Role.Tutee)
-        .eq('is_paired', false)
       
+      // Get pairs to determine which tutees are already paired
+      const { data: pairsData, error: pairsError } = await supabase
+        .from('pairs')
+        .select('tutee_id')
+      
+      if (pairsError) {
+        console.error('Error fetching pairs:', pairsError)
+        return
+      }
+      
+      // Get all paired tutee IDs
+      const pairedTuteeIds = pairsData.map(pair => pair.tutee_id)
+      
+      // Execute the query to get tutees
       const { data, error } = await query
       
       if (error) {
@@ -175,7 +191,10 @@ export default function PairsPage() {
         return
       }
       
-      setTutees(data)
+      // Filter out tutees that are already paired
+      const unpaired = data.filter(tutee => !pairedTuteeIds.includes(tutee.id))
+      
+      setTutees(unpaired)
     } catch (error) {
       console.error('Error fetching tutees:', error)
     } finally {
@@ -223,12 +242,14 @@ export default function PairsPage() {
   // Handle tutor selection
   const handleTutorSelect = (tutor: Tutor) => {
     setSelectedTutor(tutor)
-    setSelectedTutees([])
     
     // When selecting a tutor, find all pairs with this tutor
     const tutorPairs = pairs.filter(pair => pair.tutor.id === tutor.id);
     const tuteeIds = tutorPairs.map(pair => pair.tutee.id);
     setSelectedTutees(tuteeIds);
+    
+    // Refresh tutees list to show only unpaired tutees
+    fetchTutees();
   }
   
   // Handle tutee selection
@@ -245,18 +266,8 @@ export default function PairsPage() {
   const handlePairAction = (tuteeId: string) => {
     if (!selectedTutor) return;
     
-    // Find the pair with this tutor and tutee
-    const existingPair = pairs.find(
-      pair => pair.tutor.id === selectedTutor.id && pair.tutee.id === tuteeId
-    );
-    
-    if (existingPair) {
-      // If pair exists, delete it
-      handleDeletePair(existingPair.id);
-    } else {
-      // If pair doesn't exist, create it
-      createPair(selectedTutor.id, tuteeId);
-    }
+    // Create the pair
+    createPair(selectedTutor.id, tuteeId);
   }
   
   // Create a single pair
@@ -323,8 +334,10 @@ export default function PairsPage() {
   
   // Fetch tutees when selected tutor changes
   useEffect(() => {
-    fetchTutees()
-  }, [selectedTutor, tuteeNameFilter, tuteeGroupFilter]) // Remove fetchTutees from dependencies
+    if (tuteeNameFilter || tuteeGroupFilter) {
+      fetchTutees();
+    }
+  }, [tuteeNameFilter, tuteeGroupFilter, fetchTutees]);
   
   return (
     <>
@@ -386,71 +399,126 @@ export default function PairsPage() {
                     <p className={theme.text.body.small}>Try adjusting your filters or check back later.</p>
                   </div>
                 ) : (
-                  <ul className="divide-y divide-gray-200">
-                    {tutors.map((tutor) => {
-                      // Find all pairs for this tutor
-                      const tutorPairs = pairs.filter(pair => pair.tutor.id === tutor.id);
+                  <div>
+                    {/* Group tutors by whether they have tutees */}
+                    {tutors.some(tutor => tutor.tutee_count === 0) && (
+                      <div className="bg-green-100 px-4 py-2 text-sm font-medium text-green-800">
+                        Available Tutors (No Tutees)
+                      </div>
+                    )}
+                    
+                    <ul className="divide-y divide-gray-200">
+                      {/* First show tutors with no tutees */}
+                      {tutors
+                        .filter(tutor => tutor.tutee_count === 0)
+                        .map((tutor) => {
+                          return (
+                            <li 
+                              key={tutor.id}
+                              className={`p-4 hover:bg-gray-50 cursor-pointer ${selectedTutor?.id === tutor.id ? 'bg-sky-50 border-l-4 border-sky-500' : ''} bg-green-50`}
+                              onClick={() => handleTutorSelect(tutor)}
+                            >
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <h3 className="text-lg font-medium text-gray-900">
+                                    {tutor.first_name} {tutor.last_name}
+                                    <span className="ml-2 text-sm font-medium text-green-600">
+                                      (Available)
+                                    </span>
+                                  </h3>
+                                  <p className="text-sm text-gray-500">
+                                    {tutor.student_email}
+                                  </p>
+                                  {tutor.group && (
+                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                      {tutor.group}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    0 tutees
+                                  </span>
+                                </div>
+                              </div>
+                            </li>
+                          );
+                        })}
                       
-                      return (
-                        <li 
-                          key={tutor.id}
-                          className={`p-4 hover:bg-gray-50 cursor-pointer ${selectedTutor?.id === tutor.id ? 'bg-sky-50 border-l-4 border-sky-500' : ''}`}
-                          onClick={() => handleTutorSelect(tutor)}
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <h3 className="text-lg font-medium text-gray-900">
-                                {tutor.first_name} {tutor.last_name}
-                              </h3>
-                              <p className="text-sm text-gray-500">
-                                {tutor.student_email}
-                              </p>
-                              {tutor.group && (
-                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                  {tutor.group}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${tutor.tutee_count === 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                {tutor.tutee_count} tutee{tutor.tutee_count !== 1 ? 's' : ''}
-                              </span>
-                            </div>
-                          </div>
+                      {/* Then show tutors with tutees */}
+                      {tutors.some(tutor => tutor.tutee_count > 0) && (
+                        <div className="bg-yellow-100 px-4 py-2 text-sm font-medium text-yellow-800">
+                          Tutors with Assigned Tutees
+                        </div>
+                      )}
+                      
+                      {tutors
+                        .filter(tutor => tutor.tutee_count > 0)
+                        .map((tutor) => {
+                          // Find all pairs for this tutor
+                          const tutorPairs = pairs.filter(pair => pair.tutor.id === tutor.id);
                           
-                          {/* Show paired tutees if this tutor is selected */}
-                          {selectedTutor?.id === tutor.id && tutorPairs.length > 0 && (
-                            <div className="mt-3 pl-4 border-l-2 border-sky-200">
-                              <p className="text-sm font-medium text-gray-700 mb-2">Current Pairs:</p>
-                              <ul className="space-y-2">
-                                {tutorPairs.map(pair => (
-                                  <li key={pair.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                                    <div>
-                                      <span className="text-sm font-medium">{pair.tutee.first_name} {pair.tutee.last_name}</span>
-                                      {pair.tutee.group && (
-                                        <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                          {pair.tutee.group}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeletePair(pair.id);
-                                      }}
-                                      className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-xs"
-                                    >
-                                      Delete
-                                    </button>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                          return (
+                            <li 
+                              key={tutor.id}
+                              className={`p-4 hover:bg-gray-50 cursor-pointer ${selectedTutor?.id === tutor.id ? 'bg-sky-50 border-l-4 border-sky-500' : ''}`}
+                              onClick={() => handleTutorSelect(tutor)}
+                            >
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <h3 className="text-lg font-medium text-gray-900">
+                                    {tutor.first_name} {tutor.last_name}
+                                  </h3>
+                                  <p className="text-sm text-gray-500">
+                                    {tutor.student_email}
+                                  </p>
+                                  {tutor.group && (
+                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                      {tutor.group}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    {tutor.tutee_count} tutee{tutor.tutee_count !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {/* Show paired tutees if this tutor is selected */}
+                              {selectedTutor?.id === tutor.id && tutorPairs.length > 0 && (
+                                <div className="mt-3 pl-4 border-l-2 border-sky-200">
+                                  <p className="text-sm font-medium text-gray-700 mb-2">Current Pairs:</p>
+                                  <ul className="space-y-2">
+                                    {tutorPairs.map(pair => (
+                                      <li key={pair.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                                        <div>
+                                          <span className="text-sm font-medium">{pair.tutee.first_name} {pair.tutee.last_name}</span>
+                                          {pair.tutee.group && (
+                                            <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                              {pair.tutee.group}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeletePair(pair.id);
+                                          }}
+                                          className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-xs"
+                                        >
+                                          Delete
+                                        </button>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                    </ul>
+                  </div>
                 )}
               </div>
             </div>
@@ -530,24 +598,17 @@ export default function PairsPage() {
                                     {tutee.group}
                                   </span>
                                 )}
-                                {tutee.is_paired && tutee.paired_tutor && (
-                                  <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                    Paired with: {tutee.paired_tutor.name}
-                                  </span>
-                                )}
                               </div>
                               <div>
-                                {!tutee.is_paired && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handlePairAction(tutee.id);
-                                    }}
-                                    className="px-3 py-1 rounded-md text-white text-sm font-medium bg-green-500 hover:bg-green-600"
-                                  >
-                                    Add
-                                  </button>
-                                )}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePairAction(tutee.id);
+                                  }}
+                                  className="px-3 py-1 rounded-md text-white text-sm font-medium bg-green-500 hover:bg-green-600"
+                                >
+                                  Add
+                                </button>
                               </div>
                             </div>
                           </li>
