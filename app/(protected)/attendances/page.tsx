@@ -287,6 +287,56 @@ export default function AttendancesPage() {
     
     return `[${weekday}] ${date} (${startTime}-${endTime}) - ${session.type} at ${session.location}`
   }
+
+  // Check if session is over
+  const isSessionOver = (session: Session) => {
+    const now = new Date()
+    const sessionDate = new Date(session.date)
+    const [hours, minutes] = session.end_time.split(':').map(Number)
+    const sessionEndTime = new Date(sessionDate)
+    sessionEndTime.setHours(hours, minutes, 0, 0)
+    
+    return now > sessionEndTime
+  }
+
+  // Get attendance label for a user
+  const getAttendanceLabel = (userId: string) => {
+    const attendance = attendances.find(a => a.user_id === userId)
+    if (!attendance) return null
+
+    const labelStyles = {
+      [AttendanceType.Present]: 'bg-green-100 text-green-800',
+      [AttendanceType.Excused]: 'bg-amber-100 text-amber-800',
+      [AttendanceType.Absent]: 'bg-red-100 text-red-800'
+    }
+
+    const icons = {
+      [AttendanceType.Present]: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      ),
+      [AttendanceType.Excused]: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      [AttendanceType.Absent]: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      )
+    }
+
+    return (
+      <div className="flex justify-center">
+        <span className={`px-3 py-1.5 rounded-md font-medium text-sm inline-flex items-center ${labelStyles[attendance.attendance_type]}`}>
+          {icons[attendance.attendance_type]}
+          {attendance.attendance_type}
+        </span>
+      </div>
+    )
+  }
   
   return (
     <div className="container mx-auto px-4 py-8">
@@ -404,6 +454,8 @@ export default function AttendancesPage() {
                   attendance.user_id === user.id && 
                   attendance.attendance_type === AttendanceType.Excused
                 )
+                const currentSession = sessions.find(s => s.id === selectedSessionId)
+                const sessionOver = currentSession ? isSessionOver(currentSession) : false
                 
                 return (
                   <div key={user.id} className="bg-white rounded-lg shadow p-4 border border-gray-200 hover:shadow-md transition-shadow">
@@ -426,9 +478,11 @@ export default function AttendancesPage() {
                         <span className="font-medium">Group:</span> {user.group}
                       </div>
                       
-                      {/* Action Button or Excused Label */}
+                      {/* Action Button or Attendance Label */}
                       <div className="pt-2">
-                        {isExcused ? (
+                        {sessionOver ? (
+                          getAttendanceLabel(user.id)
+                        ) : isExcused ? (
                           <div className="flex justify-center">
                             <span className="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-md font-medium text-sm inline-flex items-center">
                               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
