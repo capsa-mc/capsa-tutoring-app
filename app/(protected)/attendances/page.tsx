@@ -288,15 +288,24 @@ export default function AttendancesPage() {
     return `[${weekday}] ${date} (${startTime}-${endTime}) - ${session.type} at ${session.location}`
   }
 
-  // Check if session is over
-  const isSessionOver = (session: Session) => {
-    const now = new Date()
+  // Check if session date is before today
+  const isSessionDateBeforeToday = (session: Session) => {
+    const today = new Date(formatToISO(getCurrentDate()))
     const sessionDate = new Date(session.date)
-    const [hours, minutes] = session.end_time.split(':').map(Number)
-    const sessionEndTime = new Date(sessionDate)
-    sessionEndTime.setHours(hours, minutes, 0, 0)
-    
-    return now > sessionEndTime
+    return sessionDate < today
+  }
+
+  // Check if session date is today
+  const isSessionDateToday = (session: Session) => {
+    const today = formatToISO(getCurrentDate())
+    return session.date === today
+  }
+
+  // Check if session date is after today
+  const isSessionDateAfterToday = (session: Session) => {
+    const today = new Date(formatToISO(getCurrentDate()))
+    const sessionDate = new Date(session.date)
+    return sessionDate > today
   }
 
   // Get attendance label for a user
@@ -450,12 +459,6 @@ export default function AttendancesPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {users.map(user => {
                 const checkedIn = isCheckedIn(user.id)
-                const isExcused = attendances.some(attendance => 
-                  attendance.user_id === user.id && 
-                  attendance.attendance_type === AttendanceType.Excused
-                )
-                const currentSession = sessions.find(s => s.id === selectedSessionId)
-                const sessionOver = currentSession ? isSessionOver(currentSession) : false
                 
                 return (
                   <div key={user.id} className="bg-white rounded-lg shadow p-4 border border-gray-200 hover:shadow-md transition-shadow">
@@ -480,64 +483,117 @@ export default function AttendancesPage() {
                       
                       {/* Action Button or Attendance Label */}
                       <div className="pt-2">
-                        {sessionOver ? (
-                          getAttendanceLabel(user.id)
-                        ) : isExcused ? (
-                          <div className="flex justify-center">
-                            <span className="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-md font-medium text-sm inline-flex items-center">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              Excused
-                            </span>
-                          </div>
-                        ) : checkedIn ? (
-                          <button
-                            onClick={() => handleDeleteAttendance(user.id)}
-                            disabled={actionUserId === user.id}
-                            className="w-full px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
-                          >
-                            {actionUserId === user.id ? (
-                              <span className="inline-flex items-center justify-center">
-                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Deleting...
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                                Delete Attendance
-                              </span>
-                            )}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleCheckIn(user.id)}
-                            disabled={actionUserId === user.id}
-                            className="w-full px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition-colors"
-                          >
-                            {actionUserId === user.id ? (
-                              <span className="inline-flex items-center justify-center">
-                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                Checking In...
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                                Check In
-                              </span>
-                            )}
-                          </button>
-                        )}
+                        {(() => {
+                          const attendance = attendances.find(a => a.user_id === user.id)
+                          const currentSession = sessions.find(s => s.id === selectedSessionId)
+                          
+                          // Always show Excused Label if attendance type has been set to Excused
+                          if (attendance && attendance.attendance_type === AttendanceType.Excused) {
+                            return (
+                              <div className="flex justify-center">
+                                <span className="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-md font-medium text-sm inline-flex items-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  Excused
+                                </span>
+                              </div>
+                            )
+                          }
+                          
+                          // If session date is before today, show grayed out button
+                          if (currentSession && isSessionDateBeforeToday(currentSession)) {
+                            return (
+                              <button
+                                disabled={true}
+                                className="w-full px-3 py-2 bg-gray-300 text-gray-600 rounded-md cursor-not-allowed opacity-60 transition-colors"
+                              >
+                                <span className="inline-flex items-center justify-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  Past Session
+                                </span>
+                              </button>
+                            )
+                          }
+                          
+                          // If session date is today, show CheckIn / Cancel Button
+                          if (currentSession && isSessionDateToday(currentSession)) {
+                            if (checkedIn) {
+                              return (
+                                <button
+                                  onClick={() => handleDeleteAttendance(user.id)}
+                                  disabled={actionUserId === user.id}
+                                  className="w-full px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
+                                >
+                                  {actionUserId === user.id ? (
+                                    <span className="inline-flex items-center justify-center">
+                                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                      </svg>
+                                      Deleting...
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center justify-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      Cancel
+                                    </span>
+                                  )}
+                                </button>
+                              )
+                            } else {
+                              return (
+                                <button
+                                  onClick={() => handleCheckIn(user.id)}
+                                  disabled={actionUserId === user.id}
+                                  className="w-full px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition-colors"
+                                >
+                                  {actionUserId === user.id ? (
+                                    <span className="inline-flex items-center justify-center">
+                                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                      </svg>
+                                      Checking In...
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center justify-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                      Check In
+                                    </span>
+                                  )}
+                                </button>
+                              )
+                            }
+                          }
+                          
+                          // If session date is after today, show color coded attendance types labels
+                          if (currentSession && isSessionDateAfterToday(currentSession)) {
+                            if (attendance) {
+                              return getAttendanceLabel(user.id)
+                            } else {
+                              return (
+                                <div className="flex justify-center">
+                                  <span className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md font-medium text-sm inline-flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Future Session
+                                  </span>
+                                </div>
+                              )
+                            }
+                          }
+                          
+                          // Default case - show attendance label if exists
+                          return attendance ? getAttendanceLabel(user.id) : null
+                        })()}
                       </div>
                     </div>
                   </div>
