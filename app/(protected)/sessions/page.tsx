@@ -41,8 +41,8 @@ export default function SessionsPage() {
   // State for form
   const [formData, setFormData] = useState<SessionFormData>({
     location: 'Robert Frost Middle School',
-    start_time: '15:00:00',
-    end_time: '17:00:00',
+    start_time: '12:00:00',
+    end_time: '10:00:00',
     date: formatToISO(getCurrentDate()),
     type: SessionType.Tutoring,
     comment: ''
