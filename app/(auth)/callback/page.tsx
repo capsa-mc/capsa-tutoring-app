@@ -11,6 +11,7 @@ export default function CallbackPage() {
   const isEmailVerification = searchParams.has('token_hash')
   const code = searchParams.get('code')
   const isRegistration = searchParams.has('registration')
+  const isResetPassword = searchParams.has('reset_password')
   const error = searchParams.get('error')
   const errorDescription = searchParams.get('error_description')
   
@@ -59,6 +60,12 @@ export default function CallbackPage() {
             return
           } else if (data.session) {
             console.log('Session established successfully')
+            
+            // If this is a password reset, redirect to reset password page
+            if (isResetPassword) {
+              router.push('/reset-password')
+              return
+            }
           }
         }
         
@@ -73,8 +80,8 @@ export default function CallbackPage() {
 
     handleCallback()
 
-    // Only set up redirect timer if we're successful
-    if (processingStatus === 'success') {
+    // Only set up redirect timer if we're successful and not a password reset
+    if (processingStatus === 'success' && !isResetPassword) {
       const timer = setTimeout(() => {
         // Redirect to profile page if it's a registration, otherwise to login
         router.push(isRegistration ? '/profile' : '/login')
@@ -82,11 +89,15 @@ export default function CallbackPage() {
   
       return () => clearTimeout(timer)
     }
-  }, [router, isEmailVerification, code, isRegistration, error, errorDescription, processingStatus])
+  }, [router, isEmailVerification, code, isRegistration, isResetPassword, error, errorDescription, processingStatus])
 
   // Handle manual redirect
   const handleRedirect = () => {
-    router.push(processingStatus === 'success' && isRegistration ? '/profile' : '/login')
+    if (isResetPassword) {
+      router.push('/reset-password')
+    } else {
+      router.push(processingStatus === 'success' && isRegistration ? '/profile' : '/login')
+    }
   }
 
   return (
@@ -158,6 +169,30 @@ export default function CallbackPage() {
                     className="px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600"
                   >
                     Go to Profile
+                  </button>
+                </div>
+              </>
+            ) : processingStatus === 'success' && isResetPassword ? (
+              <>
+                <div className="flex justify-center mb-6">
+                  <div className="rounded-full bg-purple-100 p-3">
+                    <svg className="h-8 w-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                  </div>
+                </div>
+                <h1 className={`${theme.text.heading.h2} ${theme.spacing.section} text-center`}>
+                  Password Reset Link Verified
+                </h1>
+                <p className={`${theme.text.body.base} ${theme.spacing.element} text-center`}>
+                  You can now create a new password for your account.
+                </p>
+                <div className="flex justify-center mt-6">
+                  <button 
+                    onClick={handleRedirect}
+                    className="px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600"
+                  >
+                    Reset Password
                   </button>
                 </div>
               </>

@@ -182,7 +182,7 @@ export default function ProfilePage() {
     setEditing(false)
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     if (!editedProfile) return;
     
     const { name, value } = e.target;
@@ -354,13 +354,42 @@ export default function ProfilePage() {
                       <p className="mt-1 text-gray-900">{profile.parent_email || '-'}</p>
                     )}
                   </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Apply for Role</label>
+                    {editing ? (
+                      <select
+                        name="apply_role"
+                        value={editedProfile?.apply_role || ''}
+                        onChange={handleInputChange}
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-sky-500 focus:ring-sky-500"
+                      >
+                        <option value="">Select a role</option>
+                        {Object.values(Role).map((role) => (
+                          <option key={role} value={role}>
+                            {role}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="mt-1 text-gray-900">
+                        {profile.apply_role ? (
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleColor(profile.apply_role as Role)} text-white`}>
+                            {profile.apply_role}
+                          </span>
+                        ) : (
+                          '-'
+                        )}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* My Tutoring Box */}
-          {profile && (
+          {profile && profile.role && (profile.role === Role.Tutor || profile.role === Role.Tutee) && (
             <MyTutoring
               userId={profile.id}
               tutorInfo={profile.paired_tutor}

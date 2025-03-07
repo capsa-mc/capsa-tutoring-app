@@ -28,7 +28,7 @@ export default function ResetPasswordPage() {
       
       // If no session or no access token, redirect to login
       if (!data.session?.access_token) {
-        router.push('/login')
+        router.push('/login?error=You must be logged in to reset your password')
       }
     }
     
