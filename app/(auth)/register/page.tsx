@@ -46,6 +46,8 @@ export default function RegisterPage() {
           setError('Registration successful but there was an issue creating your profile. Please contact support.')
         } else {
           setSuccess(true)
+          // Redirect to callback page with registration parameter
+          router.push('/callback?registration=true')
           // Reset form
           setFormData({
             email: '',

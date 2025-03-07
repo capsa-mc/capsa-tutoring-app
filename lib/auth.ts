@@ -3,6 +3,11 @@ import { AuthResponse, RegisterFormData } from '@/types/auth'
 
 export async function registerUser(formData: RegisterFormData): Promise<AuthResponse> {
   try {
+    // Get the base URL for redirects
+    const baseUrl = typeof window !== 'undefined' 
+      ? `${window.location.protocol}//${window.location.host}`
+      : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    
     const { data, error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
@@ -12,6 +17,7 @@ export async function registerUser(formData: RegisterFormData): Promise<AuthResp
           last_name: formData.last_name,
           apply_role: formData.apply_role,
         },
+        emailRedirectTo: `${baseUrl}/callback?registration=true`,
       },
     })
 

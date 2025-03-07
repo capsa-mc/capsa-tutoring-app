@@ -164,22 +164,24 @@ export default function MyTutoring({ userId, tutorInfo, tuteeInfo }: MyTutoringP
         {/* Tutor/Tutee Information */}
         <div className="mb-6">
           {tutorInfo && (
-            <div className="mb-2">
-              <span className="font-medium">My Tutor:</span>{' '}
-              <span className="text-gray-600">{tutorInfo.name}</span>
+            <div className="mb-3">
+              <span className="font-medium mr-2">My Tutor:</span>
+              <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded text-sm font-medium">
+                {tutorInfo.name}
+              </span>
             </div>
           )}
           
           {tuteeInfo && tuteeInfo.length > 0 && (
             <div>
-              <span className="font-medium">My Tutees:</span>
-              <ul className="mt-1 space-y-1">
+              <span className="font-medium mr-2">My Tutees:</span>
+              <div className="flex flex-wrap gap-2 mt-1">
                 {tuteeInfo.map(tutee => (
-                  <li key={tutee.id} className="text-gray-600 ml-4">
-                    • {tutee.name}
-                  </li>
+                  <span key={tutee.id} className="px-2 py-0.5 bg-sky-100 text-sky-800 rounded text-sm font-medium">
+                    {tutee.name}
+                  </span>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
         </div>
