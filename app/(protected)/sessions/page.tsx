@@ -41,8 +41,8 @@ export default function SessionsPage() {
   // State for form
   const [formData, setFormData] = useState<SessionFormData>({
     location: 'Robert Frost Middle School',
-    start_time: '12:00:00',
-    end_time: '10:00:00',
+    start_time: '10:00:00',
+    end_time: '12:00:00',
     date: formatToISO(getCurrentDate()),
     type: SessionType.Tutoring,
     comment: ''
@@ -92,7 +92,13 @@ export default function SessionsPage() {
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    
+    // For time inputs, ensure we store the full time format (HH:MM:SS)
+    if (name === 'start_time' || name === 'end_time') {
+      setFormData(prev => ({ ...prev, [name]: `${value}:00` }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+    }
   }
   
   // Handle form submission
@@ -202,9 +208,22 @@ export default function SessionsPage() {
 
   // Handle edit input changes
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    if (!editingSession) return
     const { name, value } = e.target
-    setEditingSession(prev => prev ? { ...prev, [name]: value } : null)
+    
+    if (!editingSession) return
+    
+    // For time inputs, ensure we store the full time format (HH:MM:SS)
+    if (name === 'start_time' || name === 'end_time') {
+      setEditingSession({
+        ...editingSession,
+        [name]: `${value}:00`
+      })
+    } else {
+      setEditingSession({
+        ...editingSession,
+        [name]: value
+      })
+    }
   }
   
   return (
