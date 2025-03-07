@@ -182,6 +182,8 @@ export default function AttendancesPage() {
   // Handle session date change
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSessionDate(e.target.value)
+    // Trigger session fetch immediately when date changes
+    fetchSessions()
   }
   
   // Handle session selection
@@ -306,7 +308,7 @@ export default function AttendancesPage() {
           </div>
         )}
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
             <input
@@ -317,32 +319,24 @@ export default function AttendancesPage() {
             />
           </div>
           
-          <div className="flex items-end">
-            <button
-              onClick={fetchSessions}
-              disabled={loadingSessions}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Session</label>
+            <select
+              value={selectedSessionId || ''}
+              onChange={handleSessionChange}
+              disabled={loadingSessions || sessions.length === 0}
+              className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
-              {loadingSessions ? 'Loading...' : 'Find Sessions'}
-            </button>
-          </div>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Session</label>
-          <select
-            value={selectedSessionId || ''}
-            onChange={handleSessionChange}
-            disabled={loadingSessions || sessions.length === 0}
-            className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          >
-            <option value="" disabled>Select a session</option>
-            {sessions.map((session) => (
-              <option key={session.id} value={session.id}>
-                {formatSessionDisplay(session)}
+              <option value="" disabled>
+                {loadingSessions ? 'Loading sessions...' : sessions.length === 0 ? 'No sessions available' : 'Select a session'}
               </option>
-            ))}
-          </select>
+              {sessions.map((session) => (
+                <option key={session.id} value={session.id}>
+                  {formatSessionDisplay(session)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
       
@@ -406,6 +400,11 @@ export default function AttendancesPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {users.map(user => {
                 const checkedIn = isCheckedIn(user.id)
+                const isExcused = attendances.some(attendance => 
+                  attendance.user_id === user.id && 
+                  attendance.attendance_type === AttendanceType.Excused
+                )
+                
                 return (
                   <div key={user.id} className="bg-white rounded-lg shadow p-4 border border-gray-200 hover:shadow-md transition-shadow">
                     <div className="flex flex-col space-y-3">
@@ -427,9 +426,18 @@ export default function AttendancesPage() {
                         <span className="font-medium">Group:</span> {user.group}
                       </div>
                       
-                      {/* Action Button */}
+                      {/* Action Button or Excused Label */}
                       <div className="pt-2">
-                        {checkedIn ? (
+                        {isExcused ? (
+                          <div className="flex justify-center">
+                            <span className="px-3 py-1.5 bg-amber-100 text-amber-800 rounded-md font-medium text-sm inline-flex items-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Excused
+                            </span>
+                          </div>
+                        ) : checkedIn ? (
                           <button
                             onClick={() => handleDeleteAttendance(user.id)}
                             disabled={actionUserId === user.id}
