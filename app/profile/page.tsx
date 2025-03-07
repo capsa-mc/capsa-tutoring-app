@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient, getCurrentUser, getUserProfile } from '@/lib/supabase'
 import { theme } from '@/app/styles/theme'
 import { Role, Group } from '@/types/database/schema'
+import MyTutoring from '@/app/components/MyTutoring'
 
 interface UserProfile {
   id: string
@@ -222,6 +223,7 @@ export default function ProfilePage() {
     <div className={theme.layout.section.default}>
       <div className={theme.layout.container}>
         <div className="max-w-5xl mx-auto">
+          {/* My Profile Box */}
           <div className="bg-white shadow-md rounded-lg overflow-hidden">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
@@ -259,271 +261,112 @@ export default function ProfilePage() {
                   )}
                 </div>
               </div>
-              
-              {editing ? (
+
+              {/* Profile Form */}
+              <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div>
-                      <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
-                        First Name
-                      </label>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">First Name</label>
+                    {editing ? (
                       <input
                         type="text"
-                        id="first_name"
                         name="first_name"
                         value={editedProfile?.first_name || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-sky-500 focus:ring-sky-500"
                       />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
-                        Last Name
-                      </label>
+                    ) : (
+                      <p className="mt-1 text-gray-900">{profile.first_name || '-'}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                    {editing ? (
                       <input
                         type="text"
-                        id="last_name"
                         name="last_name"
                         value={editedProfile?.last_name || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-sky-500 focus:ring-sky-500"
                       />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="student_phone" className="block text-sm font-medium text-gray-700 mb-1">
-                        Student Phone
-                      </label>
+                    ) : (
+                      <p className="mt-1 text-gray-900">{profile.last_name || '-'}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Student Phone</label>
+                    {editing ? (
                       <input
                         type="tel"
-                        id="student_phone"
                         name="student_phone"
                         value={editedProfile?.student_phone || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-sky-500 focus:ring-sky-500"
                       />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="student_email" className="block text-sm font-medium text-gray-700 mb-1">
-                        Student Email
-                      </label>
+                    ) : (
+                      <p className="mt-1 text-gray-900">{profile.student_phone || '-'}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Student Email</label>
+                    {editing ? (
                       <input
                         type="email"
-                        id="student_email"
                         name="student_email"
                         value={editedProfile?.student_email || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-sky-500 focus:ring-sky-500"
                       />
-                    </div>
+                    ) : (
+                      <p className="mt-1 text-gray-900">{profile.student_email || '-'}</p>
+                    )}
                   </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label htmlFor="parent_phone" className="block text-sm font-medium text-gray-700 mb-1">
-                        Parent Phone
-                      </label>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Parent Phone</label>
+                    {editing ? (
                       <input
                         type="tel"
-                        id="parent_phone"
                         name="parent_phone"
                         value={editedProfile?.parent_phone || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-sky-500 focus:ring-sky-500"
                       />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="parent_email" className="block text-sm font-medium text-gray-700 mb-1">
-                        Parent Email
-                      </label>
+                    ) : (
+                      <p className="mt-1 text-gray-900">{profile.parent_phone || '-'}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Parent Email</label>
+                    {editing ? (
                       <input
                         type="email"
-                        id="parent_email"
                         name="parent_email"
                         value={editedProfile?.parent_email || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
+                        className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-sky-500 focus:ring-sky-500"
                       />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="apply_role" className="block text-sm font-medium text-gray-700 mb-1">
-                        Apply for Role
-                      </label>
-                      <select
-                        id="apply_role"
-                        name="apply_role"
-                        value={editedProfile?.apply_role || ''}
-                        onChange={(e) => {
-                          if (!editedProfile) return;
-                          setEditedProfile({
-                            ...editedProfile,
-                            apply_role: e.target.value as Role || null
-                          });
-                        }}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sky-500 focus:ring-sky-500 sm:text-sm"
-                      >
-                        <option value="">Select a role</option>
-                        <option value={Role.Tutor}>Tutor</option>
-                        <option value={Role.Tutee}>Tutee</option>
-                        <option value={Role.Coordinator}>Coordinator</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Basic Information */}
-                  <div className="space-y-3">
-                    <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
-                      <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
-                        Name
-                      </h2>
-                      <p className={`${theme.colors.text.primary} font-medium`}>
-                        {profile.first_name && profile.last_name 
-                          ? `${profile.first_name} ${profile.last_name}`
-                          : 'Not set'}
-                      </p>
-                    </div>
-                    
-                    <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
-                      <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
-                        Email
-                      </h2>
-                      <p className={`${theme.colors.text.primary} font-medium`}>
-                        {user?.email || 'Not set'}
-                      </p>
-                    </div>
-                    
-                    <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
-                      <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
-                        Role
-                      </h2>
-                      <p className={`${theme.colors.text.primary} font-medium`}>
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleColor(profile.role as Role)} text-white`}>
-                          {profile.role || 'Not assigned'}
-                        </span>
-                      </p>
-                    </div>
-                    
-                    <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
-                      <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
-                        Apply Role
-                      </h2>
-                      <p className={`${theme.colors.text.primary} font-medium`}>
-                        {profile.apply_role ? (
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-sky-500 text-white`}>
-                            {profile.apply_role}
-                          </span>
-                        ) : 'Not applied'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Contact Information */}
-                  <div className="space-y-3">
-                    <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
-                      <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
-                        Student Phone
-                      </h2>
-                      <p className={`${theme.colors.text.primary} font-medium`}>
-                        {profile.student_phone || 'Not set'}
-                      </p>
-                    </div>
-                    
-                    <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
-                      <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
-                        Student Email
-                      </h2>
-                      <p className={`${theme.colors.text.primary} font-medium`}>
-                        {profile.student_email || 'Not set'}
-                      </p>
-                    </div>
-                    
-                    <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
-                      <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
-                        Parent Phone
-                      </h2>
-                      <p className={`${theme.colors.text.primary} font-medium`}>
-                        {profile.parent_phone || 'Not set'}
-                      </p>
-                    </div>
-                    
-                    <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
-                      <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
-                        Parent Email
-                      </h2>
-                      <p className={`${theme.colors.text.primary} font-medium`}>
-                        {profile.parent_email || 'Not set'}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Group Information */}
-                  <div className="space-y-3">
-                    <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
-                      <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
-                        Group
-                      </h2>
-                      <p className={`${theme.colors.text.primary} font-medium`}>
-                        {profile.group || 'Not assigned'}
-                      </p>
-                    </div>
-                    
-                    {/* 配对信息 */}
-                    {profile.role === Role.Tutor && (
-                      <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
-                        <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
-                          Paired Tutees
-                        </h2>
-                        {profile.paired_tutees && profile.paired_tutees.length > 0 ? (
-                          <div className="space-y-2">
-                            {profile.paired_tutees.map(tutee => (
-                              <div key={tutee.id} className="flex items-center">
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800`}>
-                                  {tutee.name}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className={`${theme.colors.text.primary} font-medium`}>
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800`}>
-                              No paired tutees
-                            </span>
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    
-                    {profile.role === Role.Tutee && (
-                      <div className={`${theme.colors.background.secondary} rounded-lg p-4`}>
-                        <h2 className={`text-sm font-medium ${theme.colors.text.secondary} uppercase tracking-wider mb-2`}>
-                          Paired Tutor
-                        </h2>
-                        {profile.is_paired && profile.paired_tutor ? (
-                          <p className={`${theme.colors.text.primary} font-medium`}>
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800`}>
-                              {profile.paired_tutor.name}
-                            </span>
-                          </p>
-                        ) : (
-                          <p className={`${theme.colors.text.primary} font-medium`}>
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800`}>
-                              Not paired with any tutor
-                            </span>
-                          </p>
-                        )}
-                      </div>
+                    ) : (
+                      <p className="mt-1 text-gray-900">{profile.parent_email || '-'}</p>
                     )}
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
+
+          {/* My Tutoring Box */}
+          {profile && (
+            <MyTutoring
+              userId={profile.id}
+              tutorInfo={profile.paired_tutor}
+              tuteeInfo={profile.paired_tutees}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -2,7 +2,8 @@
 
 import { useState, useEffect, FormEvent, useCallback } from 'react'
 import { SessionType } from '@/types/database/schema'
-import { format, addDays } from 'date-fns'
+import { addDays } from 'date-fns'
+import { formatInTimeZone, getCurrentDate, formatToISO } from '@/lib/date-utils'
 
 interface Session {
   id: number
@@ -24,8 +25,8 @@ interface SessionFormData {
 }
 
 export default function SessionsPage() {
-  const today = format(new Date(), 'yyyy-MM-dd')
-  const oneMonthLater = format(addDays(new Date(), 30), 'yyyy-MM-dd')
+  const today = formatToISO(getCurrentDate())
+  const oneMonthLater = formatToISO(addDays(getCurrentDate(), 30))
   
   // State for sessions list
   const [sessions, setSessions] = useState<Session[]>([])
@@ -42,7 +43,7 @@ export default function SessionsPage() {
     location: 'Robert Frost Middle School',
     start_time: '15:00:00',
     end_time: '17:00:00',
-    date: format(new Date(), 'yyyy-MM-dd'),
+    date: formatToISO(getCurrentDate()),
     type: SessionType.Tutoring,
     comment: ''
   })
@@ -209,6 +210,7 @@ export default function SessionsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Sessions Management</h1>
+      
       {/* Add New Session Form */}
       <div className="bg-white shadow rounded-lg p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Add New Session</h2>
@@ -276,7 +278,7 @@ export default function SessionsPage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Session Type</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
               <select
                 name="type"
                 required
@@ -284,21 +286,21 @@ export default function SessionsPage() {
                 value={formData.type}
                 onChange={handleInputChange}
               >
-                <option value={SessionType.Tutoring}>Tutoring</option>
-                <option value={SessionType.Training}>Training</option>
-                <option value={SessionType.Adhoc}>Adhoc</option>
+                {Object.values(SessionType).map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
               </select>
             </div>
             
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Comment (Optional)</label>
-              <textarea
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Comment</label>
+              <input
+                type="text"
                 name="comment"
-                rows={3}
                 className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                value={formData.comment}
+                value={formData.comment || ''}
                 onChange={handleInputChange}
-              ></textarea>
+              />
             </div>
           </div>
           
@@ -306,28 +308,31 @@ export default function SessionsPage() {
             <button
               type="submit"
               disabled={formSubmitting}
-              className="w-full md:w-auto px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
               {formSubmitting ? 'Creating...' : 'Create Session'}
             </button>
           </div>
         </form>
       </div>
-      {/* Filters */}
-      <div className="bg-white shadow rounded-lg p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Filter Sessions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      
+      {/* Sessions List */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <h2 className="text-xl font-semibold mb-4">Sessions List</h2>
+        
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Session Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
             <select
-              className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
+              className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             >
               <option value="">All Types</option>
-              <option value={SessionType.Tutoring}>Tutoring</option>
-              <option value={SessionType.Training}>Training</option>
-              <option value={SessionType.Adhoc}>Adhoc</option>
+              {Object.values(SessionType).map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
             </select>
           </div>
           
@@ -335,9 +340,9 @@ export default function SessionsPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
             <input
               type="date"
-              className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               value={startDateFilter}
               onChange={(e) => setStartDateFilter(e.target.value)}
+              className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             />
           </div>
           
@@ -345,170 +350,188 @@ export default function SessionsPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
             <input
               type="date"
-              className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               value={endDateFilter}
               onChange={(e) => setEndDateFilter(e.target.value)}
+              className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             />
           </div>
         </div>
-      </div>
-      
-      {/* Sessions List */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-xl font-semibold mb-4">Sessions List</h2>
         
-        {loading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-          </div>
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
             {error}
           </div>
-        ) : sessions.length === 0 ? (
-          <div className="text-gray-500 text-center py-8">
-            No sessions found
+        )}
+        
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500"></div>
           </div>
+        ) : sessions.length === 0 ? (
+          <p className="text-gray-500 text-center py-8">No sessions found.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Comment</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {sessions.map((session) => (
-                  <tr key={session.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {editingSessionId === session.id ? (
+          <div className="space-y-4">
+            {sessions.map(session => (
+              <div
+                key={session.id}
+                className="bg-gray-50 rounded-lg p-4 transition-all hover:shadow-md"
+              >
+                {editingSessionId === session.id ? (
+                  // Editing mode
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                         <input
                           type="date"
                           name="date"
                           value={editingSession?.date || ''}
                           onChange={handleEditChange}
-                          className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         />
-                      ) : (
-                        session.date
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {editingSessionId === session.id ? (
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                         <input
                           type="text"
                           name="location"
                           value={editingSession?.location || ''}
                           onChange={handleEditChange}
-                          className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         />
-                      ) : (
-                        session.location
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {editingSessionId === session.id ? (
-                        <div className="flex space-x-2">
-                          <input
-                            type="time"
-                            name="start_time"
-                            value={editingSession?.start_time.substring(0, 5) || ''}
-                            onChange={handleEditChange}
-                            className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                          />
-                          <span>-</span>
-                          <input
-                            type="time"
-                            name="end_time"
-                            value={editingSession?.end_time.substring(0, 5) || ''}
-                            onChange={handleEditChange}
-                            className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                          />
-                        </div>
-                      ) : (
-                        `${session.start_time.substring(0, 5)} - ${session.end_time.substring(0, 5)}`
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {editingSessionId === session.id ? (
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                        <input
+                          type="time"
+                          name="start_time"
+                          value={editingSession?.start_time.substring(0, 5) || ''}
+                          onChange={handleEditChange}
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                        <input
+                          type="time"
+                          name="end_time"
+                          value={editingSession?.end_time.substring(0, 5) || ''}
+                          onChange={handleEditChange}
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
                         <select
                           name="type"
                           value={editingSession?.type || ''}
                           onChange={handleEditChange}
-                          className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         >
-                          <option value={SessionType.Tutoring}>Tutoring</option>
-                          <option value={SessionType.Training}>Training</option>
-                          <option value={SessionType.Adhoc}>Adhoc</option>
+                          {Object.values(SessionType).map(type => (
+                            <option key={type} value={type}>{type}</option>
+                          ))}
                         </select>
-                      ) : (
-                        session.type
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {editingSessionId === session.id ? (
-                        <textarea
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Comment</label>
+                        <input
+                          type="text"
                           name="comment"
                           value={editingSession?.comment || ''}
                           onChange={handleEditChange}
-                          rows={2}
-                          className="border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         />
-                      ) : (
-                        session.comment
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleUpdateSession(session.id)}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        Update
+                      </button>
+                      <button
+                        onClick={() => handleEditToggle(session)}
+                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // Display mode
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-6 mb-4 md:mb-0">
+                      <div className="flex items-center space-x-2">
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-sm font-medium">
+                          {formatInTimeZone(session.date, 'EEEE')}
+                        </span>
+                        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded text-sm font-medium">
+                          {formatInTimeZone(session.date, 'MMM d, yyyy')}
+                        </span>
+                        <span className="px-2 py-0.5 bg-sky-100 text-sky-800 rounded text-sm font-medium">
+                          {session.type}
+                        </span>
+                      </div>
+                      
+                      <div className="text-gray-600">
+                        <span className="font-medium">{session.start_time.substring(0, 5)}</span>
+                        <span className="mx-2">-</span>
+                        <span className="font-medium">{session.end_time.substring(0, 5)}</span>
+                      </div>
+                      
+                      <div className="flex items-center text-gray-600">
+                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {session.location}
+                      </div>
+                      
+                      {session.comment && (
+                        <div className="text-gray-500 text-sm">
+                          {session.comment}
+                        </div>
                       )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                      {editingSessionId === session.id ? (
-                        <>
-                          <button
-                            onClick={() => handleUpdateSession(session.id)}
-                            className="px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                          >
-                            Update
-                          </button>
-                          <button
-                            onClick={() => handleEditToggle(session)}
-                            className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
-                          >
-                            Cancel
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleEditToggle(session)}
-                            className="px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSession(session.id)}
-                            disabled={deletingSessionId === session.id}
-                            className="px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
-                          >
-                            {deletingSessionId === session.id ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            ) : (
-                              'Delete'
-                            )}
-                          </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditToggle(session)}
+                        className="px-3 py-1.5 bg-sky-500 text-white rounded-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSession(session.id)}
+                        disabled={deletingSessionId === session.id}
+                        className="px-3 py-1.5 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                      >
+                        {deletingSessionId === session.id ? (
+                          <span className="inline-flex items-center">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Deleting...
+                          </span>
+                        ) : 'Delete'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>
-      
     </div>
   )
 } 

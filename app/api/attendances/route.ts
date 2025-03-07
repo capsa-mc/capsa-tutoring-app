@@ -94,30 +94,17 @@ export async function GET(request: Request) {
     const sessionId = url.searchParams.get('sessionId')
     
     if (type === 'sessions') {
-      // Fetch sessions close to the given date
+      // Fetch sessions for the exact date
       let query = supabase
         .from('sessions')
         .select('*')
       
       if (date) {
-        // Get sessions on the same date or close to it (±2 days)
-        const targetDate = new Date(date)
-        const minDate = new Date(targetDate)
-        minDate.setDate(minDate.getDate() - 2)
-        
-        const maxDate = new Date(targetDate)
-        maxDate.setDate(maxDate.getDate() + 2)
-        
-        query = query
-          .gte('date', minDate.toISOString().split('T')[0])
-          .lte('date', maxDate.toISOString().split('T')[0])
+        query = query.eq('date', date)
       }
       
-      // Order by date and start_time
-      query = query.order('date', { ascending: true }).order('start_time', { ascending: true })
-      
-      // Limit to 5 sessions
-      query = query.limit(5)
+      // Order by start_time
+      query = query.order('start_time', { ascending: true })
       
       const { data: sessions, error } = await query
       
