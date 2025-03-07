@@ -230,10 +230,13 @@ export default function PairsPage() {
       }
       
       const data = await response.json()
+      console.log('Fetched pairs data:', data.pairs || [])
       setPairs(data.pairs || [])
+      return data.pairs || [];
     } catch (err) {
       console.error('Error fetching pairs:', err)
       setError('Failed to load pairs')
+      return [];
     } finally {
       setLoadingTutors(false)
     }
@@ -241,12 +244,17 @@ export default function PairsPage() {
   
   // Handle tutor selection
   const handleTutorSelect = (tutor: Tutor) => {
-    setSelectedTutor(tutor)
+    console.log('Selected tutor:', tutor);
+    setSelectedTutor(tutor);
     
     // When selecting a tutor, find all pairs with this tutor
     const tutorPairs = pairs.filter(pair => pair.tutor.id === tutor.id);
+    console.log('Tutor pairs:', tutorPairs);
     const tuteeIds = tutorPairs.map(pair => pair.tutee.id);
     setSelectedTutees(tuteeIds);
+    
+    // Refresh pairs data to ensure we have the latest pairs
+    fetchPairs();
     
     // Refresh tutees list to show only unpaired tutees
     fetchTutees();
@@ -326,11 +334,13 @@ export default function PairsPage() {
   // Load data when user role is confirmed
   useEffect(() => {
     if ([Role.Admin, Role.Staff, Role.Coordinator].includes(userRole as Role)) {
-      fetchPairs()
-      fetchTutors()
-      fetchTutees()
+      // First fetch pairs, then tutors and tutees
+      fetchPairs().then(() => {
+        fetchTutors();
+        fetchTutees();
+      });
     }
-  }, [fetchPairs, fetchTutors, fetchTutees])
+  }, [userRole, fetchPairs, fetchTutors, fetchTutees]);
   
   // Fetch tutees when selected tutor changes
   useEffect(() => {
@@ -338,6 +348,13 @@ export default function PairsPage() {
       fetchTutees();
     }
   }, [tuteeNameFilter, tuteeGroupFilter, fetchTutees]);
+  
+  // Refresh pairs data when a tutor is selected
+  useEffect(() => {
+    if (selectedTutor) {
+      fetchPairs();
+    }
+  }, [selectedTutor, fetchPairs]);
   
   return (
     <>
@@ -457,6 +474,7 @@ export default function PairsPage() {
                         .map((tutor) => {
                           // Find all pairs for this tutor
                           const tutorPairs = pairs.filter(pair => pair.tutor.id === tutor.id);
+                          console.log(`Tutor ${tutor.first_name} ${tutor.last_name} pairs:`, tutorPairs);
                           
                           return (
                             <li 
@@ -486,32 +504,38 @@ export default function PairsPage() {
                               </div>
                               
                               {/* Show paired tutees if this tutor is selected */}
-                              {selectedTutor?.id === tutor.id && tutorPairs.length > 0 && (
+                              {selectedTutor?.id === tutor.id && (
                                 <div className="mt-3 pl-4 border-l-2 border-sky-200">
-                                  <p className="text-sm font-medium text-gray-700 mb-2">Current Pairs:</p>
-                                  <ul className="space-y-2">
-                                    {tutorPairs.map(pair => (
-                                      <li key={pair.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
-                                        <div>
-                                          <span className="text-sm font-medium">{pair.tutee.first_name} {pair.tutee.last_name}</span>
-                                          {pair.tutee.group && (
-                                            <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                              {pair.tutee.group}
+                                  <p className="text-sm font-medium text-gray-700 mb-2">
+                                    {tutorPairs.length > 0 ? 'Current Pairs:' : 'No tutees paired with this tutor yet.'}
+                                  </p>
+                                  {tutorPairs.length > 0 && (
+                                    <ul className="space-y-2">
+                                      {tutorPairs.map(pair => (
+                                        <li key={pair.id} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                                          <div>
+                                            <span className="text-sm font-medium">
+                                              {pair.tutee?.first_name || 'Unknown'} {pair.tutee?.last_name || ''}
                                             </span>
-                                          )}
-                                        </div>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeletePair(pair.id);
-                                          }}
-                                          className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-xs"
-                                        >
-                                          Delete
-                                        </button>
-                                      </li>
-                                    ))}
-                                  </ul>
+                                            {pair.tutee?.group && (
+                                              <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                {pair.tutee.group}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeletePair(pair.id);
+                                            }}
+                                            className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded-md text-xs"
+                                          >
+                                            Delete
+                                          </button>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
                                 </div>
                               )}
                             </li>

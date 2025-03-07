@@ -274,6 +274,7 @@ export async function GET(request: Request) {
         }
       }).filter(pair => pair.tutor && pair.tutee) // Only include pairs with both tutor and tutee
       
+      console.log('API - Returning pairs:', pairsWithProfiles);
       return NextResponse.json({ pairs: pairsWithProfiles })
     }
   } catch (error) {
