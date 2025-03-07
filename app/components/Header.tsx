@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { usePathname } from 'next/navigation'
 import { theme } from '../styles/theme'
 import ScrollLink from './ScrollLink'
@@ -27,7 +27,16 @@ export default function Header() {
   const [isLoading, setIsLoading] = useState(true)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false)
+  const [isMobileAdminMenuOpen, setIsMobileAdminMenuOpen] = useState(false)
   const adminMenuRef = useRef<HTMLDivElement>(null)
+
+  // Define adminSubItems using useMemo to avoid recreating the array on every render
+  const adminSubItems: NavItem[] = useMemo(() => [
+    { label: 'Applications', href: '/applications', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
+    { label: 'Pairs', href: '/pairs', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
+    { label: 'Sessions', href: '/sessions', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
+    { label: 'Attendances', href: '/attendances', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
+  ], []);
 
   useEffect(() => {
     let isMounted = true;
@@ -118,8 +127,14 @@ export default function Header() {
   // Close mobile menu when changing routes
   useEffect(() => {
     setIsMobileMenuOpen(false);
-    setIsAdminMenuOpen(false);
-  }, [pathname]);
+    
+    // Only close admin menu if we're not navigating to an admin submenu page
+    const isAdminSubPage = adminSubItems.some(item => item.href === pathname);
+    if (!isAdminSubPage) {
+      setIsAdminMenuOpen(false);
+      setIsMobileAdminMenuOpen(false);
+    }
+  }, [pathname, adminSubItems]);
 
   // Close admin menu when clicking outside
   useEffect(() => {
@@ -154,13 +169,6 @@ export default function Header() {
   const authNavItems: NavItem[] = [
     { label: 'Login', href: '/login', isSection: false, variant: 'secondary', protected: false },
     { label: 'Register', href: '/register', isSection: false, variant: 'primary', protected: false },
-  ]
-
-  const adminSubItems: NavItem[] = [
-    { label: 'Applications', href: '/applications', isSection: false, variant: 'default', protected: true, adminOnly: true },
-    { label: 'Pairs', href: '/pairs', isSection: false, variant: 'default', protected: true, adminOnly: true },
-    { label: 'Sessions', href: '/sessions', isSection: false, variant: 'default', protected: true, adminOnly: true },
-    { label: 'Attendances', href: '/attendances', isSection: false, variant: 'default', protected: true, adminOnly: true },
   ]
 
   const protectedNavItems: NavItem[] = [
@@ -214,6 +222,12 @@ export default function Header() {
 
   const toggleAdminMenu = () => {
     setIsAdminMenuOpen(!isAdminMenuOpen);
+  };
+
+  const toggleMobileAdminMenu = (e: React.MouseEvent) => {
+    // Prevent event propagation to avoid closing the mobile menu
+    e.stopPropagation();
+    setIsMobileAdminMenuOpen(!isMobileAdminMenuOpen);
   };
 
   return (
@@ -345,7 +359,10 @@ export default function Header() {
         
         {/* Mobile Navigation Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden py-4 px-2 bg-white border-t border-gray-100">
+          <div 
+            className="md:hidden py-4 px-2 bg-white border-t border-gray-100 z-50"
+            onClick={(e) => e.stopPropagation()}
+          >
             {isLoading ? (
               <div className="animate-pulse h-40 bg-gray-200 rounded"></div>
             ) : (
@@ -355,7 +372,7 @@ export default function Header() {
                     return (
                       <div key={item.label} className="mb-2">
                         <button
-                          onClick={toggleAdminMenu}
+                          onClick={toggleMobileAdminMenu}
                           className={`${getButtonStyles(item.variant, true)} flex items-center justify-between`}
                         >
                           <span className="flex items-center">
@@ -373,7 +390,7 @@ export default function Header() {
                           </span>
                           <svg 
                             xmlns="http://www.w3.org/2000/svg" 
-                            className={`ml-1 h-4 w-4 transition-transform text-sky-500 ${isAdminMenuOpen ? 'rotate-180' : ''}`} 
+                            className={`ml-1 h-4 w-4 transition-transform text-sky-500 ${isMobileAdminMenuOpen ? 'rotate-180' : ''}`} 
                             fill="none" 
                             viewBox="0 0 24 24" 
                             stroke="currentColor"
@@ -382,8 +399,11 @@ export default function Header() {
                           </svg>
                         </button>
                         
-                        {isAdminMenuOpen && (
-                          <div className="mt-2 mb-3 border border-gray-100 rounded-md overflow-hidden bg-gray-50 animate-fadeIn">
+                        {isMobileAdminMenuOpen && (
+                          <div 
+                            className="mt-2 mb-3 border border-gray-100 rounded-md overflow-hidden bg-gray-50 animate-fadeIn"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {item.children.map((subItem, index) => (
                               <Link
                                 key={subItem.label}
@@ -392,7 +412,12 @@ export default function Header() {
                                   pathname === subItem.href ? 'bg-sky-50 text-sky-600 border-l-2 border-sky-500 font-medium' : 'text-gray-700'
                                 } animate-slideIn`}
                                 style={{ animationDelay: `${index * 50}ms` }}
-                                onClick={() => setIsMobileMenuOpen(false)}
+                                onClick={(e) => {
+                                  // Prevent the mobile menu from closing when clicking on Admin submenu items
+                                  e.stopPropagation();
+                                  // Keep the mobile menu open but close the admin submenu
+                                  setIsMobileAdminMenuOpen(false);
+                                }}
                               >
                                 {subItem.label}
                               </Link>

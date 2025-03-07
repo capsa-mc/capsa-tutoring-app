@@ -239,7 +239,7 @@ export async function PATCH(request: Request) {
     }
     
     // Convert start_time and end_time from NY time to UTC
-    let updatedData = { ...updateData }
+    const updatedData = { ...updateData }
     
     if (updateData.start_time && updateData.date) {
       updatedData.start_time = nyTimeToUTC(updateData.date, updateData.start_time)
