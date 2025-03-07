@@ -1,7 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { CookieOptions } from '@supabase/ssr'
 import { Role, AttendanceType, SessionType } from '@/types/database/schema'
 
 // Helper function to create a Supabase server client
@@ -12,17 +11,14 @@ const createServerSupabaseClient = async () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.delete({ name, ...options })
-        },
+      cookieOptions: {
+        name: 'sb',
+        path: '/',
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 60 * 24 * 7,
       },
+      cookies: cookieStore,
     }
   )
 }
@@ -39,20 +35,47 @@ export async function GET(request: Request) {
     
     // Get today's date in YYYY-MM-DD format
     const today = new Date().toISOString().split('T')[0]
+    console.log('Checking sessions for date:', today)
     
-    // Get all tutoring sessions for today
-    const { data: sessions, error: sessionsError } = await supabase
+    // First try to get today's sessions
+    const { data: todaySessions, error: todayError } = await supabase
       .from('sessions')
       .select('*')
-      .eq('date', today)
       .eq('type', SessionType.Tutoring)
+      .eq('date', today)
     
-    if (sessionsError) {
-      throw sessionsError
+    if (todayError) {
+      console.error('Error getting today\'s sessions:', todayError)
+      throw todayError
     }
     
+    let sessions = todaySessions
+    
+    // If no sessions today, get the most recent past session
     if (!sessions || sessions.length === 0) {
-      return NextResponse.json({ message: 'No tutoring sessions found for today' })
+      console.log('No sessions found for today, checking most recent past session...')
+      const { data: pastSessions, error: pastError } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('type', SessionType.Tutoring)
+        .lt('date', today)
+        .order('date', { ascending: false })
+        .limit(1)
+      
+      if (pastError) {
+        console.error('Error getting past sessions:', pastError)
+        throw pastError
+      }
+      
+      if (!pastSessions || pastSessions.length === 0) {
+        console.log('No past sessions found')
+        return NextResponse.json({ message: 'No tutoring sessions found' })
+      }
+      
+      sessions = pastSessions
+      console.log('Found past sessions for date:', pastSessions[0].date)
+    } else {
+      console.log('Found today\'s sessions:', sessions.length)
     }
     
     const results = []
@@ -85,18 +108,18 @@ export async function GET(request: Request) {
           continue
         }
         
-        // Get users who already have attendance records (Present or Excused)
+        // Get users who already have attendance records (Present, Excused, or Absent)
         const { data: existingAttendances, error: attendanceError } = await supabase
           .from('attendances')
           .select('user_id')
           .eq('session_id', session.id)
-          .in('attendance_type', [AttendanceType.Present, AttendanceType.Excused])
+          .in('attendance_type', [AttendanceType.Present, AttendanceType.Excused, AttendanceType.Absent])
         
         if (attendanceError) {
           throw attendanceError
         }
         
-        // Get users who don't have attendance records
+        // Get users who don't have any attendance records
         const existingUserIds = existingAttendances?.map(a => a.user_id) || []
         const absentUsers = users.filter(user => !existingUserIds.includes(user.id))
         
@@ -132,7 +155,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Error in check-absences cron job:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }
