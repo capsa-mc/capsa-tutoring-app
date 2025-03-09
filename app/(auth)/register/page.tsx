@@ -42,8 +42,13 @@ export default function RegisterPage() {
           })
 
         if (profileError) {
-          console.error('Error creating profile:', profileError)
-          setError('Registration successful but there was an issue creating your profile. Please contact support.')
+          // Check if error is due to duplicate profile
+          if (profileError.code === '23505') { // unique_violation
+            await handleExistingEmail(formData.email)
+          } else {
+            console.error('Error creating profile:', profileError)
+            setError('Registration successful but there was an issue creating your profile. Please contact support.')
+          }
         } else {
           setSuccess(true)
           // Redirect to callback page with registration parameter
@@ -58,12 +63,53 @@ export default function RegisterPage() {
           })
         }
       } else {
-        setError(response.error?.message || 'Registration failed')
+        if (response.error?.message?.toLowerCase().includes('email already registered')) {
+          // Check if the email is unverified and resend verification email
+          const { error: resendError } = await supabase.auth.resend({
+            type: 'signup',
+            email: formData.email,
+            options: {
+              emailRedirectTo: `${window.location.origin}/callback?registration=true`,
+            },
+          })
+
+          if (resendError?.message?.includes('Email already confirmed')) {
+            setError('This email is already registered. Please try signing in instead.')
+          } else {
+            setSuccess(true)
+            setError('')
+          }
+        } else {
+          setError(response.error?.message || 'Registration failed')
+        }
       }
     } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleExistingEmail = async (email: string) => {
+    try {
+      // Try to resend verification email directly
+      const { error: resendError } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/callback?registration=true`,
+        },
+      })
+
+      if (resendError?.message?.includes('Email already confirmed')) {
+        setError('This email is already registered. Please try signing in instead.')
+      } else {
+        setSuccess(true)
+        setError('')
+      }
+    } catch (error) {
+      console.error('Error handling existing email:', error)
+      setError('An unexpected error occurred. Please try again.')
     }
   }
 
@@ -92,6 +138,10 @@ export default function RegisterPage() {
         <div className="text-center">
           <p className="mb-4">
             Thank you for registering. Please check your email to verify your account.
+          </p>
+          <p className="text-sm text-gray-600">
+            If you don&apos;t receive the email within a few minutes, please check your spam folder.
+            You can also try signing in to resend the verification email.
           </p>
         </div>
       </AuthForm>
