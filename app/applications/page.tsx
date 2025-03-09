@@ -245,7 +245,7 @@ export default function ApplicationsPage() {
         )}
         
         {/* Applications list */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -256,77 +256,84 @@ export default function ApplicationsPage() {
               <p className={theme.text.body.small}>Try adjusting your filters or check back later.</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className={theme.colors.background.secondary}>
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Current Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Requested Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {applications.map((application) => (
-                  <tr key={application.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {application.first_name} {application.last_name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {application.student_email}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        application.role ? 'bg-green-500' : 'bg-yellow-500'
-                      } text-white`}>
-                        {application.role || 'None'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-sky-500 text-white`}>
-                        {application.apply_role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        {canApproveRole(application.apply_role as Role) ? (
-                          <>
-                            <button
-                              onClick={() => handleApprove(application.id, application.apply_role as Role)}
-                              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => handleReject(application.id)}
-                              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                            >
-                              Reject
-                            </button>
-                          </>
-                        ) : (
-                          <span className="text-gray-400">Cannot Approve</span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="inline-block min-w-full align-middle">
+              <div className="overflow-hidden md:rounded-lg">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className={theme.colors.background.secondary}>
+                    <tr>
+                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th scope="col" className="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Email
+                      </th>
+                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Current Role
+                      </th>
+                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Requested Role
+                      </th>
+                      <th scope="col" className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {applications.map((application) => (
+                      <tr key={application.id} className="hover:bg-gray-50">
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {application.first_name} {application.last_name}
+                          </div>
+                          <div className="sm:hidden text-xs text-gray-500 mt-1">
+                            {application.student_email}
+                          </div>
+                        </td>
+                        <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">
+                            {application.student_email}
+                          </div>
+                        </td>
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            application.role ? 'bg-green-500' : 'bg-yellow-500'
+                          } text-white`}>
+                            {application.role || 'None'}
+                          </span>
+                        </td>
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-sky-500 text-white`}>
+                            {application.apply_role}
+                          </span>
+                        </td>
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            {canApproveRole(application.apply_role as Role) ? (
+                              <>
+                                <button
+                                  onClick={() => handleApprove(application.id, application.apply_role as Role)}
+                                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleReject(application.id)}
+                                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-gray-400 text-xs sm:text-sm">Cannot Approve</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </div>
       </div>
