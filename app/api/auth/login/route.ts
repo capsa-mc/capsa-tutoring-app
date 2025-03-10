@@ -35,20 +35,6 @@ export async function POST(request: Request) {
   const body = await request.json()
 
   try {
-    // First check if the user exists and is confirmed
-    const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers()
-    if (getUserError) {
-      return NextResponse.json({ error: 'Failed to check user status' }, { status: 500 })
-    }
-
-    const user = users.find(u => u.email === body.email)
-    if (user && !user.email_confirmed_at) {
-      return NextResponse.json(
-        { error: 'Email not confirmed. Please check your email for the verification link or request a new one.' },
-        { status: 400 }
-      )
-    }
-
     // Attempt to sign in
     const { data, error } = await supabase.auth.signInWithPassword({
       email: body.email,
@@ -56,6 +42,23 @@ export async function POST(request: Request) {
     })
 
     if (error) {
+      if (error.message.toLowerCase().includes('email not confirmed')) {
+        // Try to resend verification email
+        const { error: resendError } = await supabase.auth.resend({
+          type: 'signup',
+          email: body.email,
+          options: {
+            emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/callback?registration=true`,
+          },
+        })
+
+        if (!resendError) {
+          return NextResponse.json(
+            { error: 'Email not confirmed. A new verification email has been sent. Please check your inbox.' },
+            { status: 400 }
+          )
+        }
+      }
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
