@@ -315,6 +315,19 @@ export default function AttendancesPage() {
     return sessionDate > today
   }
 
+  // Check if current time is past session end time
+  const isSessionEnded = (session: Session) => {
+    const now = new Date()
+    const currentHour = now.getHours()
+    const currentMinute = now.getMinutes()
+    const currentTimeInMinutes = currentHour * 60 + currentMinute
+
+    const [hours, minutes] = session.end_time.split(':').map(Number)
+    const sessionEndTimeInMinutes = hours * 60 + minutes
+
+    return currentTimeInMinutes > sessionEndTimeInMinutes
+  }
+
   // Get attendance label for a user
   const getAttendanceLabel = (userId: string) => {
     const attendance = attendances.find(a => a.user_id === userId)
@@ -401,8 +414,18 @@ export default function AttendancesPage() {
           {selectedSessionId && (
             <button
               onClick={handleCloseSession}
-              disabled={closingSession || loadingAttendances}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 transition-colors"
+              disabled={closingSession || loadingAttendances || !sessions.find(s => 
+                s.id === selectedSessionId && 
+                (isSessionDateBeforeToday(s) || (isSessionDateToday(s) && isSessionEnded(s)))
+              )}
+              className={`px-4 py-2 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors ${
+                closingSession || loadingAttendances || !sessions.find(s => 
+                  s.id === selectedSessionId && 
+                  (isSessionDateBeforeToday(s) || (isSessionDateToday(s) && isSessionEnded(s)))
+                )
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-red-600 hover:bg-red-700'
+              }`}
             >
               {closingSession ? (
                 <span className="inline-flex items-center">
@@ -570,8 +593,8 @@ export default function AttendancesPage() {
                             )
                           }
                           
-                          // If session date is before today, show attendance label or grayed out button
-                          if (currentSession && isSessionDateBeforeToday(currentSession)) {
+                          // If session date is before today or session has ended, show attendance label or grayed out button
+                          if (currentSession && (isSessionDateBeforeToday(currentSession) || (isSessionDateToday(currentSession) && isSessionEnded(currentSession)))) {
                             if (attendance) {
                               return getAttendanceLabel(user.id)
                             } else {
@@ -584,15 +607,15 @@ export default function AttendancesPage() {
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    Past Session
+                                    {isSessionDateBeforeToday(currentSession) ? 'Past Session' : 'Session Ended'}
                                   </span>
                                 </button>
                               )
                             }
                           }
                           
-                          // If session date is today, show CheckIn / Cancel Button
-                          if (currentSession && isSessionDateToday(currentSession)) {
+                          // If session date is today and not ended, show CheckIn / Cancel Button
+                          if (currentSession && isSessionDateToday(currentSession) && !isSessionEnded(currentSession)) {
                             if (checkedIn) {
                               return (
                                 <button

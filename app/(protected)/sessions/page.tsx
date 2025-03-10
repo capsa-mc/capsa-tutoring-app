@@ -278,7 +278,8 @@ export default function SessionsPage() {
                 type="time"
                 name="start_time"
                 required
-                className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                step="60"
+                className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-100"
                 value={formData.start_time.substring(0, 5)}
                 onChange={handleInputChange}
               />
@@ -290,7 +291,8 @@ export default function SessionsPage() {
                 type="time"
                 name="end_time"
                 required
-                className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                step="60"
+                className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-100"
                 value={formData.end_time.substring(0, 5)}
                 onChange={handleInputChange}
               />
@@ -426,9 +428,10 @@ export default function SessionsPage() {
                         <input
                           type="time"
                           name="start_time"
+                          step="60"
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-100"
                           value={editingSession?.start_time.substring(0, 5) || ''}
                           onChange={handleEditChange}
-                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         />
                       </div>
                       
@@ -437,9 +440,10 @@ export default function SessionsPage() {
                         <input
                           type="time"
                           name="end_time"
+                          step="60"
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-100"
                           value={editingSession?.end_time.substring(0, 5) || ''}
                           onChange={handleEditChange}
-                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         />
                       </div>
                       
