@@ -46,8 +46,7 @@ export default function RegisterPage() {
           if (profileError.code === '23505') { // unique_violation
             await handleExistingEmail(formData.email)
           } else {
-            console.error('Error creating profile:', profileError)
-            setError('Registration successful but there was an issue creating your profile. Please contact support.')
+            setError('Email is already registered. Please try signing in instead.')
           }
         } else {
           setSuccess(true)
