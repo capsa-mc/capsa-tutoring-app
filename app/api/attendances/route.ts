@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { CookieOptions } from '@supabase/ssr'
 import { Role } from '@/types/database/schema'
+import { AttendanceType } from '@/types/database/schema'
 
 // Helper function to create a Supabase server client
 const createServerSupabaseClient = async () => {
@@ -254,6 +255,77 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error in DELETE /api/attendances:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+// PATCH endpoint to close a session and mark absent users
+export async function PATCH(request: Request) {
+  try {
+    // Verify user access
+    const auth = await verifyUserAccess()
+    if (!auth.success) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
+    }
+    
+    const supabase = await createServerSupabaseClient()
+    
+    // Get session ID from request
+    const { sessionId } = await request.json()
+    
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Session ID is required' }, { status: 400 })
+    }
+
+    // Get all users who should be in the session (Tutors, Tutees, and Coordinators)
+    const { data: users, error: usersError } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .in('role', ['Tutor', 'Tutee', 'Coordinator'])
+
+    if (usersError) {
+      return NextResponse.json({ error: usersError.message }, { status: 500 })
+    }
+
+    // Get existing attendances for the session
+    const { data: existingAttendances, error: attendancesError } = await supabase
+      .from('attendances')
+      .select('user_id')
+      .eq('session_id', sessionId)
+
+    if (attendancesError) {
+      return NextResponse.json({ error: attendancesError.message }, { status: 500 })
+    }
+
+    // Find users without attendance records
+    const existingUserIds = new Set(existingAttendances?.map(a => a.user_id) || [])
+    const absentUsers = users?.filter(user => !existingUserIds.has(user.id)) || []
+
+    if (absentUsers.length === 0) {
+      return NextResponse.json({ message: 'No absent users to mark' })
+    }
+
+    // Create attendance records for absent users
+    const absentRecords = absentUsers.map(user => ({
+      session_id: sessionId,
+      user_id: user.id,
+      attendance_type: AttendanceType.Absent
+    }))
+
+    const { error: insertError } = await supabase
+      .from('attendances')
+      .insert(absentRecords)
+
+    if (insertError) {
+      return NextResponse.json({ error: insertError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `Marked ${absentUsers.length} users as absent`
+    })
+  } catch (error) {
+    console.error('Error in PATCH /api/attendances:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 } 
