@@ -1,5 +1,7 @@
 import { supabase } from './supabase'
 import { AuthResponse, RegisterFormData } from '@/types/auth'
+import { createClient, getCurrentUser, getUserProfile } from '@/lib/supabase';
+import { Role } from '@/types/database/schema';
 
 export async function registerUser(formData: RegisterFormData): Promise<AuthResponse> {
   try {
@@ -57,4 +59,63 @@ export async function registerUser(formData: RegisterFormData): Promise<AuthResp
 
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut()
+}
+
+type AuthCallbacks = {
+  onLoggedIn: (userRole: Role | null) => void;
+  onLoggedOut: () => void;
+  onLoading: (isLoading: boolean) => void;
+};
+
+export async function checkSession(callbacks: AuthCallbacks): Promise<void> {
+  const { onLoggedOut, onLoading } = callbacks;
+
+  onLoading(true);
+  try {
+    const user = await getCurrentUser();
+
+    if (!user) {
+      onLoggedOut();
+      onLoading(false);
+      return;
+    }
+
+    const profile = await getUserProfile(user.id);
+
+    if (profile) {
+      callbacks.onLoggedIn(profile.role as Role);
+    } else {
+      onLoggedOut();
+    }
+  } catch (error) {
+    console.error('Error checking session:', error);
+    onLoggedOut();
+  } finally {
+    onLoading(false);
+  }
+}
+
+export async function initializeAuth(callbacks: AuthCallbacks): Promise<{ unsubscribe: () => void } | null> {
+  const { onLoggedOut, onLoading } = callbacks;
+
+  try {
+    const supabase = createClient();
+
+    const { data } = supabase.auth.onAuthStateChange(async (event) => {
+      if (event === 'SIGNED_IN') {
+        await checkSession(callbacks);
+      } else if (event === 'SIGNED_OUT') {
+        onLoggedOut();
+      }
+    });
+
+    await checkSession(callbacks);
+
+    return data.subscription;
+  } catch (error) {
+    console.error('Error initializing auth:', error);
+    onLoading(false);
+    onLoggedOut();
+    return null;
+  }
 } 

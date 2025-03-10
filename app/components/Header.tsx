@@ -2,32 +2,75 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState, useRef, useMemo } from 'react'
+import { useEffect, useRef, useMemo, useReducer } from 'react'
 import { usePathname } from 'next/navigation'
 import { theme } from '../styles/theme'
 import ScrollLink from './ScrollLink'
 import { Role } from '@/types/database/schema'
-import { createClient, getCurrentUser, getUserProfile } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase'
+import { initializeAuth } from '@/lib/auth'
+
+type NavItemVariant = 'default' | 'primary' | 'secondary';
 
 type NavItem = {
   label: string
   href?: string
   targetId?: string
   isSection: boolean
-  variant?: 'default' | 'primary' | 'secondary'
+  variant?: NavItemVariant
   protected?: boolean
   adminOnly?: boolean
   children?: NavItem[]
 }
 
+type HeaderState = {
+  isLoggedIn: boolean;
+  userRole: Role | null;
+  isLoading: boolean;
+  isMobileMenuOpen: boolean;
+  isAdminMenuOpen: boolean;
+  isMobileAdminMenuOpen: boolean;
+};
+
+type HeaderAction =
+  | { type: 'SET_LOGGED_IN'; payload: boolean }
+  | { type: 'SET_USER_ROLE'; payload: Role | null }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'TOGGLE_MOBILE_MENU' }
+  | { type: 'TOGGLE_ADMIN_MENU' }
+  | { type: 'TOGGLE_MOBILE_ADMIN_MENU' };
+
+const initialState: HeaderState = {
+  isLoggedIn: false,
+  userRole: null,
+  isLoading: true,
+  isMobileMenuOpen: false,
+  isAdminMenuOpen: false,
+  isMobileAdminMenuOpen: false,
+};
+
+function headerReducer(state: HeaderState, action: HeaderAction): HeaderState {
+  switch (action.type) {
+    case 'SET_LOGGED_IN':
+      return { ...state, isLoggedIn: action.payload };
+    case 'SET_USER_ROLE':
+      return { ...state, userRole: action.payload };
+    case 'SET_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'TOGGLE_MOBILE_MENU':
+      return { ...state, isMobileMenuOpen: !state.isMobileMenuOpen };
+    case 'TOGGLE_ADMIN_MENU':
+      return { ...state, isAdminMenuOpen: !state.isAdminMenuOpen };
+    case 'TOGGLE_MOBILE_ADMIN_MENU':
+      return { ...state, isMobileAdminMenuOpen: !state.isMobileAdminMenuOpen };
+    default:
+      return state;
+  }
+}
+
 export default function Header() {
   const pathname = usePathname()
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userRole, setUserRole] = useState<Role | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false)
-  const [isMobileAdminMenuOpen, setIsMobileAdminMenuOpen] = useState(false)
+  const [state, dispatch] = useReducer(headerReducer, initialState);
   const adminMenuRef = useRef<HTMLDivElement>(null)
 
   // Define adminSubItems using useMemo to avoid recreating the array on every render
@@ -42,97 +85,53 @@ export default function Header() {
     let isMounted = true;
     let subscription: { unsubscribe: () => void } | null = null;
 
-    const checkSession = async () => {
-      if (!isMounted) return;
-      
-      setIsLoading(true)
-      try {
-        // Use the safer getUser method
-        const user = await getCurrentUser()
-        
-        if (!user) {
-          setIsLoggedIn(false)
-          setUserRole(null)
-          setIsLoading(false)
-          return
-        }
-        
-        setIsLoggedIn(true)
-        
-        // Get user profile
-        const profile = await getUserProfile(user.id)
-        
-        if (profile) {
-          setUserRole(profile.role as Role)
-        }
-      } catch (error) {
-        console.error('Error checking session:', error)
-        setIsLoggedIn(false)
-        setUserRole(null)
-      } finally {
+    const callbacks = {
+      onLoggedIn: (userRole: Role | null) => {
         if (isMounted) {
-          setIsLoading(false)
+          dispatch({ type: 'SET_LOGGED_IN', payload: true });
+          dispatch({ type: 'SET_USER_ROLE', payload: userRole });
         }
-      }
-    }
-
-    // Initialize Supabase client safely
-    const initializeAuth = async () => {
-      try {
-        const supabase = createClient()
-        
-        // Set up auth state change listener with error handling
-        try {
-          const { data } = supabase.auth.onAuthStateChange(async (event) => {
-            if (!isMounted) return;
-            
-            if (event === 'SIGNED_IN') {
-              checkSession()
-            } else if (event === 'SIGNED_OUT') {
-              setIsLoggedIn(false)
-              setUserRole(null)
-            }
-          })
-          
-          subscription = data.subscription;
-        } catch (error) {
-          console.error('Error setting up auth state change listener:', error)
-        }
-        
-        // Initial session check
-        await checkSession()
-      } catch (error) {
-        console.error('Error initializing auth:', error)
+      },
+      onLoggedOut: () => {
         if (isMounted) {
-          setIsLoading(false)
-          setIsLoggedIn(false)
+          dispatch({ type: 'SET_LOGGED_IN', payload: false });
+          dispatch({ type: 'SET_USER_ROLE', payload: null });
         }
-      }
-    }
+      },
+      onLoading: (isLoading: boolean) => {
+        if (isMounted) {
+          dispatch({ type: 'SET_LOADING', payload: isLoading });
+        }
+      },
+    };
 
-    initializeAuth()
+    const initialize = async () => {
+      subscription = await initializeAuth(callbacks);
+    };
+
+    initialize();
 
     return () => {
       isMounted = false;
       if (subscription) {
         try {
-          subscription.unsubscribe()
+          subscription.unsubscribe();
         } catch (error) {
-          console.error('Error unsubscribing from auth state change:', error)
+          console.error('Error unsubscribing from auth state change:', error);
         }
       }
-    }
-  }, [])
+    };
+  }, []);
 
   // Close mobile menu when changing routes
   useEffect(() => {
-    setIsMobileMenuOpen(false);
+    dispatch({ type: 'TOGGLE_MOBILE_MENU' });
     
     // Only close admin menu if we're not navigating to an admin submenu page
     const isAdminSubPage = adminSubItems.some(item => item.href === pathname);
     if (!isAdminSubPage) {
-      setIsAdminMenuOpen(false);
-      setIsMobileAdminMenuOpen(false);
+      dispatch({ type: 'TOGGLE_ADMIN_MENU' });
+      dispatch({ type: 'TOGGLE_MOBILE_ADMIN_MENU' });
     }
   }, [pathname, adminSubItems]);
 
@@ -140,7 +139,7 @@ export default function Header() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (adminMenuRef.current && !adminMenuRef.current.contains(event.target as Node)) {
-        setIsAdminMenuOpen(false);
+        dispatch({ type: 'TOGGLE_ADMIN_MENU' });
       }
     };
 
@@ -211,23 +210,22 @@ export default function Header() {
 
   // Filter out admin-only items if user is not an admin
   const filteredProtectedNavItems = protectedNavItems.filter(item => 
-    !item.adminOnly || (item.adminOnly && (userRole === Role.Admin || userRole === Role.Staff || userRole === Role.Coordinator))
+    !item.adminOnly || (item.adminOnly && (state.userRole === Role.Admin || state.userRole === Role.Staff || state.userRole === Role.Coordinator))
   )
 
-  const navItems = [...publicNavItems, ...(isLoggedIn || isProtectedRoute ? filteredProtectedNavItems : authNavItems)]
+  const navItems = [...publicNavItems, ...(state.isLoggedIn || isProtectedRoute ? filteredProtectedNavItems : authNavItems)]
 
   const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+    dispatch({ type: 'TOGGLE_MOBILE_MENU' });
   };
 
   const toggleAdminMenu = () => {
-    setIsAdminMenuOpen(!isAdminMenuOpen);
+    dispatch({ type: 'TOGGLE_ADMIN_MENU' });
   };
 
   const toggleMobileAdminMenu = (e: React.MouseEvent) => {
-    // Prevent event propagation to avoid closing the mobile menu
     e.stopPropagation();
-    setIsMobileAdminMenuOpen(!isMobileAdminMenuOpen);
+    dispatch({ type: 'TOGGLE_MOBILE_ADMIN_MENU' });
   };
 
   return (
@@ -257,7 +255,7 @@ export default function Header() {
               className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none"
               aria-label="Toggle menu"
             >
-              {isMobileMenuOpen ? (
+              {state.isMobileMenuOpen ? (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -271,7 +269,7 @@ export default function Header() {
           
           {/* Desktop Navigation */}
           <div className={theme.header.nav.menu.wrapper}>
-            {isLoading ? (
+            {state.isLoading ? (
               <div className="animate-pulse h-8 w-32 bg-gray-200 rounded"></div>
             ) : (
               navItems.map((item) => {
@@ -281,7 +279,7 @@ export default function Header() {
                       <button
                         onClick={toggleAdminMenu}
                         className={`${getButtonStyles(item.variant)} flex items-center group relative`}
-                        aria-expanded={isAdminMenuOpen}
+                        aria-expanded={state.isAdminMenuOpen}
                       >
                         <span className="flex items-center">
                           <svg 
@@ -298,7 +296,7 @@ export default function Header() {
                         </span>
                         <svg 
                           xmlns="http://www.w3.org/2000/svg" 
-                          className={`ml-1 h-4 w-4 transition-transform text-sky-500 ${isAdminMenuOpen ? 'rotate-180' : ''}`} 
+                          className={`ml-1 h-4 w-4 transition-transform text-sky-500 ${state.isAdminMenuOpen ? 'rotate-180' : ''}`} 
                           fill="none" 
                           viewBox="0 0 24 24" 
                           stroke="currentColor"
@@ -307,7 +305,7 @@ export default function Header() {
                         </svg>
                       </button>
                       
-                      {isAdminMenuOpen && (
+                      {state.isAdminMenuOpen && (
                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 border border-gray-100 overflow-hidden animate-fadeIn">
                           {item.children.map((subItem, index) => (
                             <Link
@@ -358,12 +356,12 @@ export default function Header() {
         </nav>
         
         {/* Mobile Navigation Menu */}
-        {isMobileMenuOpen && (
+        {state.isMobileMenuOpen && (
           <div 
             className="md:hidden py-4 px-2 bg-white border-t border-gray-100 z-50"
             onClick={(e) => e.stopPropagation()}
           >
-            {isLoading ? (
+            {state.isLoading ? (
               <div className="animate-pulse h-40 bg-gray-200 rounded"></div>
             ) : (
               <div className="flex flex-col space-y-1">
@@ -390,7 +388,7 @@ export default function Header() {
                           </span>
                           <svg 
                             xmlns="http://www.w3.org/2000/svg" 
-                            className={`ml-1 h-4 w-4 transition-transform text-sky-500 ${isMobileAdminMenuOpen ? 'rotate-180' : ''}`} 
+                            className={`ml-1 h-4 w-4 transition-transform text-sky-500 ${state.isMobileAdminMenuOpen ? 'rotate-180' : ''}`} 
                             fill="none" 
                             viewBox="0 0 24 24" 
                             stroke="currentColor"
@@ -399,7 +397,7 @@ export default function Header() {
                           </svg>
                         </button>
                         
-                        {isMobileAdminMenuOpen && (
+                        {state.isMobileAdminMenuOpen && (
                           <div 
                             className="mt-2 mb-3 border border-gray-100 rounded-md overflow-hidden bg-gray-50 animate-fadeIn"
                             onClick={(e) => e.stopPropagation()}
@@ -416,7 +414,7 @@ export default function Header() {
                                   // Prevent the mobile menu from closing when clicking on Admin submenu items
                                   e.stopPropagation();
                                   // Keep the mobile menu open but close the admin submenu
-                                  setIsMobileAdminMenuOpen(false);
+                                  dispatch({ type: 'TOGGLE_MOBILE_ADMIN_MENU' });
                                 }}
                               >
                                 {subItem.label}
@@ -433,7 +431,7 @@ export default function Header() {
                       key={item.targetId}
                       targetId={item.targetId}
                       className={getButtonStyles(undefined, true)}
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => dispatch({ type: 'TOGGLE_MOBILE_MENU' })}
                     >
                       {item.label}
                     </ScrollLink>
@@ -450,7 +448,7 @@ export default function Header() {
                       key={item.label}
                       href={item.href || '#'}
                       className={getButtonStyles(item.variant, true)}
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={() => dispatch({ type: 'TOGGLE_MOBILE_MENU' })}
                     >
                       {item.label}
                     </Link>

@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable prefer-const */
-/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
