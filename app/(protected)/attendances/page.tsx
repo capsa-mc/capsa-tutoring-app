@@ -131,7 +131,13 @@ export default function AttendancesPage() {
       }
       
       const result = await response.json()
-      setUsers(result.users || [])
+      // Filter users to show only Tutor, Tutee, and Coordinator
+      const filteredUsers = (result.users || []).filter((user: User) => 
+        user.role === Role.Tutor || 
+        user.role === Role.Tutee || 
+        user.role === Role.Coordinator
+      )
+      setUsers(filteredUsers)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
