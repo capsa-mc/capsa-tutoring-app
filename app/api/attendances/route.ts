@@ -203,10 +203,7 @@ export async function POST(request: Request) {
     // Insert new attendance
     const { data, error } = await supabase
       .from('attendances')
-      .insert([{
-        ...attendanceData,
-        attendance_type: 'Present'
-      }])
+      .insert([attendanceData])
       .select()
     
     if (error) {
