@@ -126,7 +126,7 @@ export const theme = {
       wrapper: 'flex items-center justify-between h-16',
       logo: {
         wrapper: 'flex items-center space-x-2',
-        image: 'w-auto h-6',
+        image: 'w-auto h-24',
         text: 'text-xl font-bold text-gray-900'
       },
       menu: {
