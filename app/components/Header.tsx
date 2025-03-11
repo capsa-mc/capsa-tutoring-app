@@ -90,23 +90,32 @@ export default function Header() {
         if (isMounted) {
           dispatch({ type: 'SET_LOGGED_IN', payload: true });
           dispatch({ type: 'SET_USER_ROLE', payload: userRole });
+          dispatch({ type: 'SET_LOADING', payload: false });
         }
       },
       onLoggedOut: () => {
         if (isMounted) {
           dispatch({ type: 'SET_LOGGED_IN', payload: false });
           dispatch({ type: 'SET_USER_ROLE', payload: null });
+          dispatch({ type: 'SET_LOADING', payload: false });
         }
       },
       onLoading: (isLoading: boolean) => {
-        if (isMounted) {
+        if (isMounted && !state.isLoggedIn) {
           dispatch({ type: 'SET_LOADING', payload: isLoading });
         }
       },
     };
 
     const initialize = async () => {
-      subscription = await initializeAuth(callbacks);
+      try {
+        subscription = await initializeAuth(callbacks);
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        if (isMounted) {
+          dispatch({ type: 'SET_LOADING', payload: false });
+        }
+      }
     };
 
     initialize();
@@ -121,19 +130,14 @@ export default function Header() {
         }
       }
     };
-  }, []);
+  }, [state.isLoggedIn]);
 
   // Close mobile menu when changing routes
   useEffect(() => {
-    dispatch({ type: 'TOGGLE_MOBILE_MENU' });
-    
-    // Only close admin menu if we're not navigating to an admin submenu page
-    const isAdminSubPage = adminSubItems.some(item => item.href === pathname);
-    if (!isAdminSubPage) {
-      dispatch({ type: 'TOGGLE_ADMIN_MENU' });
-      dispatch({ type: 'TOGGLE_MOBILE_ADMIN_MENU' });
+    if (state.isMobileMenuOpen) {
+      dispatch({ type: 'TOGGLE_MOBILE_MENU' });
     }
-  }, [pathname, adminSubItems]);
+  }, [pathname, state.isMobileMenuOpen]);
 
   // Close admin menu when clicking outside
   useEffect(() => {
@@ -143,11 +147,13 @@ export default function Header() {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+    if (state.isAdminMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [state.isAdminMenuOpen]);
 
   const handleLogout = async () => {
     try {
