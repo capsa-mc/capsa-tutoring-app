@@ -388,10 +388,11 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* My Tutoring Box */}
-          {profile && profile.role && (profile.role === Role.Tutor || profile.role === Role.Tutee) && (
+          {/* Show MyTutoring for Tutor, Tutee, and Coordinator roles */}
+          {profile.role && [Role.Tutor, Role.Tutee, Role.Coordinator].includes(profile.role) && (
             <MyTutoring
               userId={profile.id}
+              userRole={profile.role}
               tutorInfo={profile.paired_tutor}
               tuteeInfo={profile.paired_tutees}
             />

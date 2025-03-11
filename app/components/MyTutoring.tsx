@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { SessionType, AttendanceType, SessionStatus } from '@/types/database/schema'
 import { formatInTimeZone } from '@/lib/date-utils'
+import { Role } from '@/types/database/schema'
 
 interface Session {
   id: number
@@ -15,6 +16,7 @@ interface Session {
 
 interface MyTutoringProps {
   userId: string
+  userRole: Role
   tutorInfo?: {
     id: string
     name: string
@@ -27,15 +29,15 @@ interface MyTutoringProps {
   }> | null
 }
 
-export default function MyTutoring({ userId, tutorInfo, tuteeInfo }: MyTutoringProps) {
-  const [upcomingSession, setUpcomingSession] = useState<Session | null>(null)
+export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: MyTutoringProps) {
+  const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
-  const [excuseLoading, setExcuseLoading] = useState(false)
-  const [isExcused, setIsExcused] = useState(false)
+  const [excuseLoading, setExcuseLoading] = useState<number | null>(null)
+  const [excusedSessions, setExcusedSessions] = useState<Set<number>>(new Set())
   const [error, setError] = useState<string | null>(null)
   
   useEffect(() => {
-    const fetchUpcomingSession = async () => {
+    const fetchUpcomingSessions = async () => {
       setLoading(true)
       setError(null)
       
@@ -52,84 +54,137 @@ export default function MyTutoring({ userId, tutorInfo, tuteeInfo }: MyTutoringP
           .eq('type', SessionType.Tutoring)
           .or(`date.gt.${today},and(date.eq.${today},status.eq.${SessionStatus.Before})`)
           .order('date', { ascending: true })
-          .limit(1)
         
         if (sessionError) {
           throw sessionError
         }
         
         if (sessions && sessions.length > 0) {
-          const session = sessions[0]
-          setUpcomingSession(session)
-          
-          // Check if user is already excused for this session
-          const { data: attendance, error: attendanceError } = await supabase
-            .from('attendances')
-            .select('*')
-            .eq('session_id', session.id)
-            .eq('user_id', userId)
-            .eq('attendance_type', AttendanceType.Excused)
-            .maybeSingle()
-          
-          if (attendanceError) {
-            throw attendanceError
+          // Get the next date that has sessions
+          const nextDate = sessions[0].date
+          const nextDateSessions = sessions.filter(s => s.date === nextDate)
+
+          // For coordinator, show all sessions
+          // For tutor/tutee, filter sessions based on their pairs
+          if (userRole === Role.Coordinator) {
+            setUpcomingSessions(nextDateSessions)
+          } else {
+            // Get all pairs involving this user
+            const { data: pairs, error: pairsError } = await supabase
+              .from('pairs')
+              .select('*')
+              .or(`tutor_id.eq.${userId},tutee_id.eq.${userId}`)
+
+            if (pairsError) {
+              throw pairsError
+            }
+
+            // Get all users involved in these pairs
+            const relatedUserIds = new Set<string>()
+            pairs?.forEach(pair => {
+              relatedUserIds.add(pair.tutor_id)
+              relatedUserIds.add(pair.tutee_id)
+            })
+
+            // Filter sessions to only show those where paired users are attending
+            const { data: attendances, error: attendancesError } = await supabase
+              .from('attendances')
+              .select('session_id, user_id')
+              .in('user_id', Array.from(relatedUserIds))
+              .in('session_id', nextDateSessions.map(s => s.id))
+
+            if (attendancesError) {
+              throw attendancesError
+            }
+
+            const relevantSessionIds = new Set(attendances?.map(a => a.session_id) || [])
+            const filteredSessions = nextDateSessions.filter(s => relevantSessionIds.has(s.id))
+            setUpcomingSessions(filteredSessions)
           }
           
-          setIsExcused(!!attendance)
+          // Check excused status for all sessions
+          const excusedSet = new Set<number>()
+          
+          for (const session of nextDateSessions) {
+            const { data: attendance, error: attendanceError } = await supabase
+              .from('attendances')
+              .select('*')
+              .eq('session_id', session.id)
+              .eq('user_id', userId)
+              .eq('attendance_type', AttendanceType.Excused)
+              .maybeSingle()
+            
+            if (attendanceError) {
+              throw attendanceError
+            }
+            
+            if (attendance) {
+              excusedSet.add(session.id)
+            }
+          }
+          
+          setExcusedSessions(excusedSet)
         } else {
-          setUpcomingSession(null)
+          setUpcomingSessions([])
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
-        console.error('Error fetching upcoming session:', err)
+        console.error('Error fetching upcoming sessions:', err)
       } finally {
         setLoading(false)
       }
     }
     
-    fetchUpcomingSession()
-  }, [userId])
+    fetchUpcomingSessions()
+  }, [userId, userRole])
   
-  const handleExcuse = async () => {
-    if (!upcomingSession) return
-    
-    setExcuseLoading(true)
+  const handleExcuse = async (sessionId: number) => {
+    setExcuseLoading(sessionId)
     setError(null)
     
     try {
       const supabase = createClient()
+      const isExcused = excusedSessions.has(sessionId)
       
       if (isExcused) {
         // Delete the excuse record
         const { error: deleteError } = await supabase
           .from('attendances')
           .delete()
-          .eq('session_id', upcomingSession.id)
+          .eq('session_id', sessionId)
           .eq('user_id', userId)
           .eq('attendance_type', AttendanceType.Excused)
         
         if (deleteError) throw deleteError
         
-        setIsExcused(false)
+        setExcusedSessions(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(sessionId)
+          return newSet
+        })
       } else {
         // Create new excuse record
         const { error: insertError } = await supabase
           .from('attendances')
           .insert({
-            session_id: upcomingSession.id,
+            session_id: sessionId,
             user_id: userId,
             attendance_type: AttendanceType.Excused
           })
         
         if (insertError) throw insertError
         
-        setIsExcused(true)
+        setExcusedSessions(prev => {
+          const newSet = new Set(prev)
+          newSet.add(sessionId)
+          return newSet
+        })
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
       console.error('Error managing excuse:', err)
     } finally {
-      setExcuseLoading(false)
+      setExcuseLoading(null)
     }
   }
   
@@ -177,65 +232,79 @@ export default function MyTutoring({ userId, tutorInfo, tuteeInfo }: MyTutoringP
           )}
         </div>
         
-        {/* Upcoming Session */}
+        {/* Upcoming Sessions */}
         <div>
-          <h3 className="font-medium mb-2">Upcoming Session:</h3>
+          <h3 className="font-medium mb-2">Upcoming Sessions:</h3>
           
           {loading ? (
             <div className="flex justify-center py-4">
               <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-sky-500"></div>
             </div>
-          ) : upcomingSession ? (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  {/* Weekday */}
-                  <div className="flex items-center space-x-2">
-                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded text-sm font-medium">
-                      {formatSessionTime(upcomingSession).weekday}
-                    </span>
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-sm font-medium">
-                      {upcomingSession.type}
-                    </span>
+          ) : upcomingSessions.length > 0 ? (
+            <div className="space-y-4">
+              {upcomingSessions.map(session => (
+                <div key={session.id} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      {/* Weekday */}
+                      <div className="flex items-center space-x-2">
+                        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded text-sm font-medium">
+                          {formatSessionTime(session).weekday}
+                        </span>
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-sm font-medium">
+                          {session.type}
+                        </span>
+                      </div>
+                      
+                      {/* Date and Time */}
+                      <p className="text-gray-900">
+                        <span className="font-medium">{formatSessionTime(session).date}</span>
+                        <span className="mx-2 text-gray-400">|</span>
+                        <span className="text-sky-600">{formatSessionTime(session).time}</span>
+                      </p>
+                      
+                      {/* Location */}
+                      <p className="text-gray-600 text-sm flex items-center">
+                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {session.location}
+                      </p>
+
+                      {/* Comment */}
+                      {session.comment && (
+                        <p className="text-gray-600 text-sm flex items-center">
+                          <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                          </svg>
+                          {session.comment}
+                        </p>
+                      )}
+                    </div>
+                    
+                    <button
+                      onClick={() => handleExcuse(session.id)}
+                      disabled={excuseLoading !== null}
+                      className={`px-4 py-2 rounded-md text-white transition-colors
+                        ${excusedSessions.has(session.id)
+                          ? 'bg-red-500 hover:bg-red-600' 
+                          : 'bg-sky-500 hover:bg-sky-600'
+                        } disabled:opacity-50`}
+                    >
+                      {excuseLoading === session.id ? (
+                        <span className="inline-flex items-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Processing...
+                        </span>
+                      ) : excusedSessions.has(session.id) ? 'Cancel' : 'Excuse'}
+                    </button>
                   </div>
-                  
-                  {/* Date and Time */}
-                  <p className="text-gray-900">
-                    <span className="font-medium">{formatSessionTime(upcomingSession).date}</span>
-                    <span className="mx-2 text-gray-400">|</span>
-                    <span className="text-sky-600">{formatSessionTime(upcomingSession).time}</span>
-                  </p>
-                  
-                  {/* Location */}
-                  <p className="text-gray-600 text-sm flex items-center">
-                    <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    {upcomingSession.location}
-                  </p>
                 </div>
-                
-                <button
-                  onClick={handleExcuse}
-                  disabled={excuseLoading}
-                  className={`px-4 py-2 rounded-md text-white transition-colors
-                    ${isExcused 
-                      ? 'bg-red-500 hover:bg-red-600' 
-                      : 'bg-sky-500 hover:bg-sky-600'
-                    } disabled:opacity-50`}
-                >
-                  {excuseLoading ? (
-                    <span className="inline-flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processing...
-                    </span>
-                  ) : isExcused ? 'Cancel' : 'Excuse'}
-                </button>
-              </div>
+              ))}
             </div>
           ) : (
             <p className="text-gray-600">No upcoming tutoring sessions.</p>
