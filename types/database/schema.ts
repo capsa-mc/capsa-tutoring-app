@@ -34,6 +34,12 @@ export enum AttendanceType {
   Absent = 'Absent'
 }
 
+export enum SessionStatus {
+  Before = 'Before',
+  During = 'During',
+  After = 'After'
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -82,28 +88,28 @@ export interface Database {
         Row: {
           id: number
           location: string
-          start_time: string
-          end_time: string
+          hours: number
           date: string
           type: SessionType
+          status: SessionStatus
           comment: string | null
         }
         Insert: {
           id?: number
           location?: string
-          start_time: string
-          end_time: string
+          hours: number
           date: string
           type: SessionType
+          status: SessionStatus
           comment?: string | null
         }
         Update: {
           id?: number
           location?: string
-          start_time?: string
-          end_time?: string
+          hours: number
           date?: string
           type?: SessionType
+          status?: SessionStatus
           comment?: string | null
         }
       }
