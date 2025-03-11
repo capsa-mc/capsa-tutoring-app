@@ -63,44 +63,9 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
           // Get the next date that has sessions
           const nextDate = sessions[0].date
           const nextDateSessions = sessions.filter(s => s.date === nextDate)
-
-          // For coordinator, show all sessions
-          // For tutor/tutee, filter sessions based on their pairs
-          if (userRole === Role.Coordinator) {
-            setUpcomingSessions(nextDateSessions)
-          } else {
-            // Get all pairs involving this user
-            const { data: pairs, error: pairsError } = await supabase
-              .from('pairs')
-              .select('*')
-              .or(`tutor_id.eq.${userId},tutee_id.eq.${userId}`)
-
-            if (pairsError) {
-              throw pairsError
-            }
-
-            // Get all users involved in these pairs
-            const relatedUserIds = new Set<string>()
-            pairs?.forEach(pair => {
-              relatedUserIds.add(pair.tutor_id)
-              relatedUserIds.add(pair.tutee_id)
-            })
-
-            // Filter sessions to only show those where paired users are attending
-            const { data: attendances, error: attendancesError } = await supabase
-              .from('attendances')
-              .select('session_id, user_id')
-              .in('user_id', Array.from(relatedUserIds))
-              .in('session_id', nextDateSessions.map(s => s.id))
-
-            if (attendancesError) {
-              throw attendancesError
-            }
-
-            const relevantSessionIds = new Set(attendances?.map(a => a.session_id) || [])
-            const filteredSessions = nextDateSessions.filter(s => relevantSessionIds.has(s.id))
-            setUpcomingSessions(filteredSessions)
-          }
+          
+          // Show all sessions for all roles
+          setUpcomingSessions(nextDateSessions)
           
           // Check excused status for all sessions
           const excusedSet = new Set<number>()
