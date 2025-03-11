@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { SessionType, AttendanceType } from '@/types/database/schema'
-import { format, parseISO } from 'date-fns'
+import { SessionType, AttendanceType, SessionStatus } from '@/types/database/schema'
+import { formatInTimeZone } from '@/lib/date-utils'
 
 interface Session {
   id: number
   location: string
-  start_time: string
-  end_time: string
+  hours: number
   date: string
   type: SessionType
+  status: SessionStatus
   comment: string | null
 }
 
@@ -42,19 +42,16 @@ export default function MyTutoring({ userId, tutorInfo, tuteeInfo }: MyTutoringP
       try {
         const supabase = createClient()
         
-        // Get current date and time
-        const now = new Date()
-        const today = now.toISOString().split('T')[0]
-        const currentTime = format(now, 'HH:mm:ss')
+        // Get current date
+        const today = new Date().toISOString().split('T')[0]
         
         // Fetch upcoming tutoring sessions
         const { data: sessions, error: sessionError } = await supabase
           .from('sessions')
           .select('*')
           .eq('type', SessionType.Tutoring)
-          .or(`date.gt.${today},and(date.eq.${today},start_time.gt.${currentTime})`)
+          .or(`date.gt.${today},and(date.eq.${today},status.eq.${SessionStatus.Before})`)
           .order('date', { ascending: true })
-          .order('start_time', { ascending: true })
           .limit(1)
         
         if (sessionError) {
@@ -137,16 +134,10 @@ export default function MyTutoring({ userId, tutorInfo, tuteeInfo }: MyTutoringP
   }
   
   const formatSessionTime = (session: Session) => {
-    const date = parseISO(session.date)
-    const weekday = format(date, 'EEEE')
-    const formattedDate = format(date, 'MMM d, yyyy')
-    const startTime = session.start_time.substring(0, 5)
-    const endTime = session.end_time.substring(0, 5)
-    
     return {
-      weekday,
-      date: formattedDate,
-      time: `${startTime}-${endTime}`
+      weekday: formatInTimeZone(session.date, 'EEEE'),
+      date: formatInTimeZone(session.date, 'MMM d, yyyy'),
+      time: `${session.hours} hours`
     }
   }
   

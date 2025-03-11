@@ -3,7 +3,6 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { CookieOptions } from '@supabase/ssr'
 import { Role } from '@/types/database/schema'
-import { nyTimeToUTC, utcToNYTime } from '@/lib/date-utils'
 
 // Helper function to create a Supabase server client
 const createServerSupabaseClient = async () => {
@@ -117,27 +116,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
     
-    // Convert UTC times to NY times for each session
-    const sessionsWithLocalTime = data?.map(session => {
-      try {
-        // Check if session has valid date and time values
-        if (!session.date || !session.start_time || !session.end_time) {
-          console.warn('Session missing date or time values:', session)
-          return session
-        }
-        
-        return {
-          ...session,
-          start_time: utcToNYTime(session.date, session.start_time),
-          end_time: utcToNYTime(session.date, session.end_time)
-        }
-      } catch (err) {
-        console.error('Error converting time for session:', session, err)
-        return session
-      }
-    }) || []
-    
-    return NextResponse.json({ data: sessionsWithLocalTime })
+    return NextResponse.json({ data })
   } catch (error) {
     console.error('Error in GET /api/sessions:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -157,21 +136,10 @@ export async function POST(request: Request) {
     // Get session data from request
     const sessionData = await request.json()
     
-    // Convert start_time and end_time from NY time to UTC
-    const utcStartTime = nyTimeToUTC(sessionData.date, sessionData.start_time)
-    const utcEndTime = nyTimeToUTC(sessionData.date, sessionData.end_time)
-    
-    // Update the session data with UTC times
-    const sessionDataWithUTC = {
-      ...sessionData,
-      start_time: utcStartTime,
-      end_time: utcEndTime
-    }
-    
     // Insert new session
     const { data, error } = await supabase
       .from('sessions')
-      .insert([sessionDataWithUTC])
+      .insert([sessionData])
       .select()
     
     if (error) {
@@ -238,21 +206,10 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 })
     }
     
-    // Convert start_time and end_time from NY time to UTC
-    const updatedData = { ...updateData }
-    
-    if (updateData.start_time && updateData.date) {
-      updatedData.start_time = nyTimeToUTC(updateData.date, updateData.start_time)
-    }
-    
-    if (updateData.end_time && updateData.date) {
-      updatedData.end_time = nyTimeToUTC(updateData.date, updateData.end_time)
-    }
-    
     // Update the session
     const { data, error } = await supabase
       .from('sessions')
-      .update(updatedData)
+      .update(updateData)
       .eq('id', id)
       .select()
     

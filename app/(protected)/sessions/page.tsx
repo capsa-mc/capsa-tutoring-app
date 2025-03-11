@@ -1,26 +1,26 @@
 'use client'
 
 import { useState, useEffect, FormEvent, useCallback } from 'react'
-import { SessionType } from '@/types/database/schema'
+import { SessionType, SessionStatus } from '@/types/database/schema'
 import { addDays } from 'date-fns'
 import { formatInTimeZone, getCurrentDate, formatToISO } from '@/lib/date-utils'
 
 interface Session {
   id: number
   location: string
-  start_time: string
-  end_time: string
+  hours: number
   date: string
   type: SessionType
+  status: SessionStatus
   comment: string | null
 }
 
 interface SessionFormData {
   location: string
-  start_time: string
-  end_time: string
+  hours: number
   date: string
   type: SessionType
+  status: SessionStatus
   comment: string
 }
 
@@ -41,10 +41,10 @@ export default function SessionsPage() {
   // State for form
   const [formData, setFormData] = useState<SessionFormData>({
     location: 'Robert Frost Middle School',
-    start_time: '10:00:00',
-    end_time: '12:00:00',
+    hours: 2,
     date: formatToISO(getCurrentDate()),
     type: SessionType.Tutoring,
+    status: SessionStatus.Before,
     comment: ''
   })
   const [formSubmitting, setFormSubmitting] = useState(false)
@@ -92,13 +92,7 @@ export default function SessionsPage() {
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    
-    // For time inputs, ensure we store the full time format (HH:MM:SS)
-    if (name === 'start_time' || name === 'end_time') {
-      setFormData(prev => ({ ...prev, [name]: `${value}:00` }))
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }))
-    }
+    setFormData(prev => ({ ...prev, [name]: value }))
   }
   
   // Handle form submission
@@ -173,10 +167,10 @@ export default function SessionsPage() {
         body: JSON.stringify({
           id,
           location: editingSession.location,
-          start_time: editingSession.start_time,
-          end_time: editingSession.end_time,
+          hours: editingSession.hours,
           date: editingSession.date,
           type: editingSession.type,
+          status: editingSession.status,
           comment: editingSession.comment
         })
       })
@@ -212,18 +206,10 @@ export default function SessionsPage() {
     
     if (!editingSession) return
     
-    // For time inputs, ensure we store the full time format (HH:MM:SS)
-    if (name === 'start_time' || name === 'end_time') {
-      setEditingSession({
-        ...editingSession,
-        [name]: `${value}:00`
-      })
-    } else {
-      setEditingSession({
-        ...editingSession,
-        [name]: value
-      })
-    }
+    setEditingSession({
+      ...editingSession,
+      [name]: value
+    })
   }
   
   return (
@@ -273,27 +259,13 @@ export default function SessionsPage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hours</label>
               <input
-                type="time"
-                name="start_time"
+                type="number"
+                name="hours"
                 required
-                step="60"
-                className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-100"
-                value={formData.start_time.substring(0, 5)}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-              <input
-                type="time"
-                name="end_time"
-                required
-                step="60"
-                className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-100"
-                value={formData.end_time.substring(0, 5)}
+                className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                value={formData.hours}
                 onChange={handleInputChange}
               />
             </div>
@@ -309,6 +281,21 @@ export default function SessionsPage() {
               >
                 {Object.values(SessionType).map(type => (
                   <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                name="status"
+                required
+                className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                value={formData.status}
+                onChange={handleInputChange}
+              >
+                {Object.values(SessionStatus).map(status => (
+                  <option key={status} value={status}>{status}</option>
                 ))}
               </select>
             </div>
@@ -424,26 +411,13 @@ export default function SessionsPage() {
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Hours</label>
                         <input
-                          type="time"
-                          name="start_time"
-                          step="60"
-                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-100"
-                          value={editingSession?.start_time.substring(0, 5) || ''}
+                          type="number"
+                          name="hours"
+                          value={editingSession?.hours || 0}
                           onChange={handleEditChange}
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-                        <input
-                          type="time"
-                          name="end_time"
-                          step="60"
-                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 [&::-webkit-calendar-picker-indicator]:opacity-100"
-                          value={editingSession?.end_time.substring(0, 5) || ''}
-                          onChange={handleEditChange}
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                         />
                       </div>
                       
@@ -457,6 +431,20 @@ export default function SessionsPage() {
                         >
                           {Object.values(SessionType).map(type => (
                             <option key={type} value={type}>{type}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select
+                          name="status"
+                          value={editingSession?.status || ''}
+                          onChange={handleEditChange}
+                          className="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        >
+                          {Object.values(SessionStatus).map(status => (
+                            <option key={status} value={status}>{status}</option>
                           ))}
                         </select>
                       </div>
@@ -502,12 +490,29 @@ export default function SessionsPage() {
                         <span className="px-2 py-0.5 bg-sky-100 text-sky-800 rounded text-sm font-medium">
                           {session.type}
                         </span>
+                        {(() => {
+                          const statusColors = {
+                            [SessionStatus.Before]: 'bg-blue-100 text-blue-800',
+                            [SessionStatus.During]: 'bg-green-100 text-green-800',
+                            [SessionStatus.After]: 'bg-gray-100 text-gray-800'
+                          }
+
+                          const statusIcons = {
+                            [SessionStatus.Before]: '⏳',
+                            [SessionStatus.During]: '▶️',
+                            [SessionStatus.After]: '✅'
+                          }
+
+                          return (
+                            <span className={`px-2 py-0.5 rounded text-sm font-medium ${statusColors[session.status]}`}>
+                              {statusIcons[session.status]} {session.status}
+                            </span>
+                          )
+                        })()}
                       </div>
                       
                       <div className="text-gray-600">
-                        <span className="font-medium">{session.start_time.substring(0, 5)}</span>
-                        <span className="mx-2">-</span>
-                        <span className="font-medium">{session.end_time.substring(0, 5)}</span>
+                        <span className="font-medium">{session.hours} hours</span>
                       </div>
                       
                       <div className="flex items-center text-gray-600">
@@ -520,7 +525,7 @@ export default function SessionsPage() {
                       
                       {session.comment && (
                         <div className="text-gray-500 text-sm">
-                          {session.comment}
+                          💬 {session.comment}
                         </div>
                       )}
                     </div>

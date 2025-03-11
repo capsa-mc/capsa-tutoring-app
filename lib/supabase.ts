@@ -76,7 +76,10 @@ export const getCurrentSession = async () => {
 
 // Helper function to safely get the user profile
 export const getUserProfile = async (userId: string | undefined) => {
-  if (!userId) return null
+  if (!userId) {
+    console.log('No userId provided to getUserProfile')
+    return null
+  }
   
   try {
     const supabase = createClient()
@@ -89,7 +92,38 @@ export const getUserProfile = async (userId: string | undefined) => {
       .single()
     
     if (error) {
-      console.error('Error getting profile:', error)
+      // Log the specific error details
+      console.error('Error getting profile:', {
+        error,
+        userId,
+        message: error.message,
+        code: error.code,
+        details: error.details
+      })
+      
+      // If the error is due to no profile found, create a basic profile
+      if (error.code === 'PGRST116') {
+        console.log('Profile not found, creating basic profile')
+        const { data: user } = await supabase.auth.getUser()
+        if (user) {
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([{
+              id: userId,
+              role: 'Tutee', // Default role
+              email_verified: false
+            }])
+            .select()
+            .single()
+            
+          if (createError) {
+            console.error('Error creating profile:', createError)
+            return null
+          }
+          
+          return newProfile
+        }
+      }
       return null
     }
     

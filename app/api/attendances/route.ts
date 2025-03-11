@@ -104,8 +104,8 @@ export async function GET(request: Request) {
         query = query.eq('date', date)
       }
       
-      // Order by start_time
-      query = query.order('start_time', { ascending: true })
+      // Order by date
+      query = query.order('date', { ascending: true })
       
       const { data: sessions, error } = await query
       
