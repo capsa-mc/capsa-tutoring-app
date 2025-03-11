@@ -147,8 +147,20 @@ export default function PairsPage() {
         })
       )
       
-      // Sort tutors by tutee count (ascending) - tutors with 0 tutees will be first
-      tutorsWithCount.sort((a, b) => a.tutee_count - b.tutee_count)
+      // If there's a selected tutor, make sure they appear at the top of their respective group
+      if (selectedTutor) {
+        tutorsWithCount.sort((a, b) => {
+          // If one of the tutors is the selected tutor, prioritize it
+          if (a.id === selectedTutor.id) return -1
+          if (b.id === selectedTutor.id) return 1
+          
+          // Otherwise, maintain the normal sorting by tutee count
+          return a.tutee_count - b.tutee_count
+        })
+      } else {
+        // Normal sorting by tutee count if no tutor is selected
+        tutorsWithCount.sort((a, b) => a.tutee_count - b.tutee_count)
+      }
       
       setTutors(tutorsWithCount)
     } catch (error) {
@@ -156,7 +168,7 @@ export default function PairsPage() {
     } finally {
       setLoadingTutors(false)
     }
-  }, [])
+  }, [selectedTutor])
   
   // Wrap fetchTuteesWithParams in useCallback
   const fetchTuteesWithParams = useCallback(async (params: URLSearchParams) => {
