@@ -37,8 +37,6 @@ export default function Footer() {
         <div className={`${theme.footer.border} mt-8 pt-6 flex flex-col md:flex-row justify-between items-center gap-4`}>
           <p className={theme.footer.text.secondary}>© {currentYear} CAPSA-MC. All rights reserved.</p>
           <div className={theme.footer.nav.links}>
-            <Link href="/privacy" className={theme.footer.text.secondary}>Privacy Policy</Link>
-            <Link href="/terms" className={theme.footer.text.secondary}>Terms of Service</Link>
           </div>
         </div>
       </div>
