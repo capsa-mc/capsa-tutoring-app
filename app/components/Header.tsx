@@ -144,7 +144,8 @@ export default function Header() {
     };
 
     handleRouteChange();
-  }, [pathname, state.isMobileMenuOpen, dispatch]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
