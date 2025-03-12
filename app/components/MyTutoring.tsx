@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase'
 import { SessionType, AttendanceType, SessionStatus } from '@/types/database/schema'
 import { formatInTimeZone } from '@/lib/date-utils'
 import { Role } from '@/types/database/schema'
+import AttendanceStats from './AttendanceStats'
 
 interface Session {
   id: number
@@ -196,6 +197,9 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
             </div>
           )}
         </div>
+
+        {/* Attendance Statistics */}
+        <AttendanceStats userId={userId} />
         
         {/* Upcoming Sessions */}
         <div>
