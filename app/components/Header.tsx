@@ -72,6 +72,7 @@ export default function Header() {
   const pathname = usePathname()
   const [state, dispatch] = useReducer(headerReducer, initialState);
   const adminMenuRef = useRef<HTMLDivElement>(null)
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
 
   // Define adminSubItems using useMemo to avoid recreating the array on every render
   const adminSubItems: NavItem[] = useMemo(() => [
@@ -134,10 +135,42 @@ export default function Header() {
 
   // Close mobile menu when changing routes
   useEffect(() => {
+    const handleRouteChange = () => {
+      if (state.isMobileMenuOpen) {
+        setTimeout(() => {
+          dispatch({ type: 'TOGGLE_MOBILE_MENU' });
+        }, 100);
+      }
+    };
+
+    handleRouteChange();
+  }, [pathname, state.isMobileMenuOpen, dispatch]);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const isHamburgerButton = target.closest('button[aria-label="Toggle menu"]');
+      
+      if (!isHamburgerButton && mobileMenuRef.current && !mobileMenuRef.current.contains(target)) {
+        if (state.isMobileMenuOpen) {
+          dispatch({ type: 'TOGGLE_MOBILE_MENU' });
+        }
+      }
+    };
+
     if (state.isMobileMenuOpen) {
-      dispatch({ type: 'TOGGLE_MOBILE_MENU' });
+      // Add a small delay before adding the click outside listener
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 100);
+
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
     }
-  }, [pathname, state.isMobileMenuOpen]);
+  }, [state.isMobileMenuOpen]);
 
   // Close admin menu when clicking outside
   useEffect(() => {
@@ -221,7 +254,8 @@ export default function Header() {
 
   const navItems = [...publicNavItems, ...(state.isLoggedIn || isProtectedRoute ? filteredProtectedNavItems : authNavItems)]
 
-  const toggleMobileMenu = () => {
+  const toggleMobileMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
     dispatch({ type: 'TOGGLE_MOBILE_MENU' });
   };
 
@@ -364,104 +398,107 @@ export default function Header() {
         {/* Mobile Navigation Menu */}
         {state.isMobileMenuOpen && (
           <div 
-            className="md:hidden py-4 px-2 bg-white border-t border-gray-100 z-50"
+            ref={mobileMenuRef}
+            className="md:hidden fixed top-16 left-0 right-0 bg-white border-t border-gray-100 shadow-lg z-50 max-h-[calc(100vh-4rem)] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            {state.isLoading ? (
-              <div className="animate-pulse h-40 bg-gray-200 rounded"></div>
-            ) : (
-              <div className="flex flex-col space-y-1">
-                {navItems.map((item) => {
-                  if (item.label === 'Admin' && item.children) {
-                    return (
-                      <div key={item.label} className="mb-2">
-                        <button
-                          onClick={toggleMobileAdminMenu}
-                          className={`${getButtonStyles(item.variant, true)} flex items-center justify-between`}
-                        >
-                          <span className="flex items-center">
+            <div className="py-4 px-2" onClick={(e) => e.stopPropagation()}>
+              {state.isLoading ? (
+                <div className="animate-pulse h-40 bg-gray-200 rounded"></div>
+              ) : (
+                <div className="flex flex-col space-y-1" onClick={(e) => e.stopPropagation()}>
+                  {navItems.map((item) => {
+                    if (item.label === 'Admin' && item.children) {
+                      return (
+                        <div key={item.label} className="mb-2">
+                          <button
+                            onClick={toggleMobileAdminMenu}
+                            className={`${getButtonStyles(item.variant, true)} flex items-center justify-between`}
+                          >
+                            <span className="flex items-center">
+                              <svg 
+                                xmlns="http://www.w3.org/2000/svg" 
+                                className="h-5 w-5 mr-2 text-sky-500" 
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              {item.label}
+                            </span>
                             <svg 
                               xmlns="http://www.w3.org/2000/svg" 
-                              className="h-5 w-5 mr-2 text-sky-500" 
+                              className={`ml-1 h-4 w-4 transition-transform text-sky-500 ${state.isMobileAdminMenuOpen ? 'rotate-180' : ''}`} 
                               fill="none" 
                               viewBox="0 0 24 24" 
                               stroke="currentColor"
                             >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                             </svg>
-                            {item.label}
-                          </span>
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            className={`ml-1 h-4 w-4 transition-transform text-sky-500 ${state.isMobileAdminMenuOpen ? 'rotate-180' : ''}`} 
-                            fill="none" 
-                            viewBox="0 0 24 24" 
-                            stroke="currentColor"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        
-                        {state.isMobileAdminMenuOpen && (
-                          <div 
-                            className="mt-2 mb-3 border border-gray-100 rounded-md overflow-hidden bg-gray-50 animate-fadeIn"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {item.children.map((subItem, index) => (
-                              <Link
-                                key={subItem.label}
-                                href={subItem.href || '#'}
-                                className={`block py-3 px-4 text-sm hover:bg-sky-50 hover:text-sky-600 transition-colors border-l-2 border-transparent hover:border-sky-500 ${
-                                  pathname === subItem.href ? 'bg-sky-50 text-sky-600 border-l-2 border-sky-500 font-medium' : 'text-gray-700'
-                                } animate-slideIn`}
-                                style={{ animationDelay: `${index * 50}ms` }}
-                                onClick={(e) => {
-                                  // Prevent the mobile menu from closing when clicking on Admin submenu items
-                                  e.stopPropagation();
-                                  // Keep the mobile menu open but close the admin submenu
-                                  dispatch({ type: 'TOGGLE_MOBILE_ADMIN_MENU' });
-                                }}
-                              >
-                                {subItem.label}
-                              </Link>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                          </button>
+                          
+                          {state.isMobileAdminMenuOpen && (
+                            <div 
+                              className="mt-2 mb-3 border border-gray-100 rounded-md overflow-hidden bg-gray-50 animate-fadeIn"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {item.children.map((subItem, index) => (
+                                <Link
+                                  key={subItem.label}
+                                  href={subItem.href || '#'}
+                                  className={`block py-3 px-4 text-sm hover:bg-sky-50 hover:text-sky-600 transition-colors border-l-2 border-transparent hover:border-sky-500 ${
+                                    pathname === subItem.href ? 'bg-sky-50 text-sky-600 border-l-2 border-sky-500 font-medium' : 'text-gray-700'
+                                  } animate-slideIn`}
+                                  style={{ animationDelay: `${index * 50}ms` }}
+                                  onClick={(e) => {
+                                    // Prevent the mobile menu from closing when clicking on Admin submenu items
+                                    e.stopPropagation();
+                                    // Keep the mobile menu open but close the admin submenu
+                                    dispatch({ type: 'TOGGLE_MOBILE_ADMIN_MENU' });
+                                  }}
+                                >
+                                  {subItem.label}
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+                    
+                    return item.isSection && item.targetId ? (
+                      <ScrollLink
+                        key={item.targetId}
+                        targetId={item.targetId}
+                        className={getButtonStyles(undefined, true)}
+                        onClick={() => dispatch({ type: 'TOGGLE_MOBILE_MENU' })}
+                      >
+                        {item.label}
+                      </ScrollLink>
+                    ) : item.label === 'Logout' ? (
+                      <button
+                        key={item.label}
+                        onClick={handleLogout}
+                        className={getButtonStyles(item.variant, true)}
+                      >
+                        {item.label}
+                      </button>
+                    ) : (
+                      <Link
+                        key={item.label}
+                        href={item.href || '#'}
+                        className={getButtonStyles(item.variant, true)}
+                        onClick={() => dispatch({ type: 'TOGGLE_MOBILE_MENU' })}
+                      >
+                        {item.label}
+                      </Link>
                     );
-                  }
-                  
-                  return item.isSection && item.targetId ? (
-                    <ScrollLink
-                      key={item.targetId}
-                      targetId={item.targetId}
-                      className={getButtonStyles(undefined, true)}
-                      onClick={() => dispatch({ type: 'TOGGLE_MOBILE_MENU' })}
-                    >
-                      {item.label}
-                    </ScrollLink>
-                  ) : item.label === 'Logout' ? (
-                    <button
-                      key={item.label}
-                      onClick={handleLogout}
-                      className={getButtonStyles(item.variant, true)}
-                    >
-                      {item.label}
-                    </button>
-                  ) : (
-                    <Link
-                      key={item.label}
-                      href={item.href || '#'}
-                      className={getButtonStyles(item.variant, true)}
-                      onClick={() => dispatch({ type: 'TOGGLE_MOBILE_MENU' })}
-                    >
-                      {item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
