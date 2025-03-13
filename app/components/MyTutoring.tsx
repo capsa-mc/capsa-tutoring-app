@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { SessionType, AttendanceType, SessionStatus } from '@/types/database/schema'
+import { SessionType, AttendanceType, SessionStatus, Role } from '@/types/database/schema'
 import { formatInTimeZone } from '@/lib/date-utils'
-import { Role } from '@/types/database/schema'
 import AttendanceStats from './AttendanceStats'
 
 interface Session {
@@ -36,6 +35,48 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
   const [excuseLoading, setExcuseLoading] = useState<number | null>(null)
   const [excusedSessions, setExcusedSessions] = useState<Set<number>>(new Set())
   const [error, setError] = useState<string | null>(null)
+  const [sslHours, setSslHours] = useState<number>(0)
+  
+  useEffect(() => {
+    const fetchSslHours = async () => {
+      try {
+        const supabase = createClient()
+        
+        // Only fetch SSL hours for Coordinator and Tutor roles
+        if (userRole !== Role.Coordinator && userRole !== Role.Tutor) {
+          return
+        }
+        
+        // Get all sessions where user was present
+        const { data: attendances, error: attendanceError } = await supabase
+          .from('attendances')
+          .select(`
+            session_id,
+            sessions!inner (
+              hours
+            )
+          `)
+          .eq('user_id', userId)
+          .eq('attendance_type', AttendanceType.Present)
+        
+        if (attendanceError) {
+          throw attendanceError
+        }
+        
+        // Calculate total hours
+        const totalHours = attendances?.reduce((sum, attendance) => {
+          const session = attendance.sessions as unknown as { hours: number }
+          return sum + (session.hours || 0)
+        }, 0) || 0
+        
+        setSslHours(totalHours)
+      } catch (err) {
+        console.error('Error fetching SSL hours:', err)
+      }
+    }
+    
+    fetchSslHours()
+  }, [userId, userRole])
   
   useEffect(() => {
     const fetchUpcomingSessions = async () => {
@@ -170,6 +211,18 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
             {error}
+          </div>
+        )}
+        
+        {/* SSL Hours Section - Only show for Coordinator and Tutor */}
+        {(userRole === Role.Coordinator || userRole === Role.Tutor) && (
+          <div className="mb-6">
+            <h3 className="font-medium mb-2">My SSL Hours:</h3>
+            <div className="flex items-center">
+              <div className="px-3 py-1 bg-sky-100 text-sky-800 rounded-full text-sm font-medium">
+                {sslHours} hours
+              </div>
+            </div>
           </div>
         )}
         
