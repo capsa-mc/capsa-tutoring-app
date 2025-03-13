@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Group, Role } from '@/types/database/schema'
+import { format } from 'date-fns'
 
 interface User {
   id: string
@@ -23,6 +24,11 @@ export default function UsersPage() {
   const [nameFilter, setNameFilter] = useState('')
   const [groupFilter, setGroupFilter] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  // State for date range
+  const [startDate, setStartDate] = useState(format(new Date(new Date().getFullYear(), 0, 1), 'yyyy-MM-dd'))
+  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [exportLoading, setExportLoading] = useState(false)
   
   // State for editing
   const [editingUserId, setEditingUserId] = useState<string | null>(null)
@@ -123,6 +129,36 @@ export default function UsersPage() {
     setEditingGroup(null)
   }
   
+  // Handle CSV export
+  const handleExportCSV = async () => {
+    setExportLoading(true)
+    setError(null)
+    
+    try {
+      const response = await fetch(`/api/users/export?startDate=${startDate}&endDate=${endDate}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate CSV')
+      }
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `ssl-hours-${startDate}-to-${endDate}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      setSuccess('CSV file downloaded successfully')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while exporting')
+    } finally {
+      setExportLoading(false)
+    }
+  }
+  
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">User Management</h1>
@@ -162,6 +198,58 @@ export default function UsersPage() {
               </option>
             ))}
           </select>
+        </div>
+      </div>
+      
+      {/* CSV Export Section */}
+      <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 className="text-lg font-semibold mb-4">Export SSL Hours</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date
+            </label>
+            <input
+              type="date"
+              id="startDate"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
+              End Date
+            </label>
+            <input
+              type="date"
+              id="endDate"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          
+          <div className="flex items-end">
+            <button
+              onClick={handleExportCSV}
+              disabled={exportLoading}
+              className="w-full px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exportLoading ? (
+                <span className="flex items-center justify-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Generating CSV...
+                </span>
+              ) : (
+                'Export CSV'
+              )}
+            </button>
+          </div>
         </div>
       </div>
       
@@ -252,8 +340,8 @@ export default function UsersPage() {
                       <span className="inline-flex items-center px-2 py-1 rounded bg-red-50 text-red-700">
                         Absent: {user.attendance_stats.absent}
                       </span>
-                      <span className="inline-flex items-center px-2 py-1 rounded bg-gray-50 text-gray-700">
-                        Score: {user.attendance_stats.absence_score}
+                      <span className="inline-flex items-center px-2 py-1 rounded bg-orange-50 text-orange-700">
+                        Absent Score: {user.attendance_stats.absence_score}
                       </span>
                     </div>
                   </div>
