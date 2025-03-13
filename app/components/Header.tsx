@@ -80,6 +80,7 @@ export default function Header() {
     { label: 'Pairs', href: '/pairs', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
     { label: 'Sessions', href: '/sessions', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
     { label: 'Attendances', href: '/attendances', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
+    { label: 'Users', href: '/users', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
   ], []);
 
   useEffect(() => {
