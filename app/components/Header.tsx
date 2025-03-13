@@ -75,13 +75,21 @@ export default function Header() {
   const mobileMenuRef = useRef<HTMLDivElement>(null)
 
   // Define adminSubItems using useMemo to avoid recreating the array on every render
-  const adminSubItems: NavItem[] = useMemo(() => [
-    { label: 'Applications', href: '/applications', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
-    { label: 'Pairs', href: '/pairs', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
-    { label: 'Sessions', href: '/sessions', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
-    { label: 'Attendances', href: '/attendances', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
-    { label: 'Users', href: '/users', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
-  ], []);
+  const adminSubItems: NavItem[] = useMemo(() => {
+    const items = [
+      { label: 'Applications', href: '/applications', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
+      { label: 'Pairs', href: '/pairs', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
+      { label: 'Sessions', href: '/sessions', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
+      { label: 'Attendances', href: '/attendances', isSection: false, variant: 'default' as const, protected: true, adminOnly: true },
+    ]
+
+    // Only add Users link for Admin and Staff roles
+    if (state.userRole === Role.Admin || state.userRole === Role.Staff) {
+      items.push({ label: 'Users', href: '/users', isSection: false, variant: 'default' as const, protected: true, adminOnly: true })
+    }
+
+    return items
+  }, [state.userRole])
 
   useEffect(() => {
     let isMounted = true;
