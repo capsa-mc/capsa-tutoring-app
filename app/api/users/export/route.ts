@@ -84,27 +84,6 @@ const verifyUserAccess = async () => {
   }
 }
 
-// Helper function to generate CSV content
-const generateCSV = (data: Array<{
-  firstName: string | null
-  lastName: string | null
-  group: string | null
-  ssl: number
-}>) => {
-  const headers = ['firstName', 'lastName', 'group', 'ssl']
-  const rows = data.map(row => [
-    row.firstName || '',
-    row.lastName || '',
-    row.group || '',
-    row.ssl.toString()
-  ])
-  
-  return [
-    headers.join(','),
-    ...rows.map(row => row.join(','))
-  ].join('\n')
-}
-
 export async function GET(request: Request) {
   try {
     const auth = await verifyUserAccess()
@@ -168,16 +147,8 @@ export async function GET(request: Request) {
       }
     })
     
-    // Generate CSV content
-    const csvContent = generateCSV(userData)
-    
-    // Return CSV file
-    return new NextResponse(csvContent, {
-      headers: {
-        'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="ssl-hours-${startDate}-to-${endDate}.csv"`
-      }
-    })
+    // Return JSON data
+    return NextResponse.json(userData)
   } catch (error) {
     console.error('Error in GET /api/users/export:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

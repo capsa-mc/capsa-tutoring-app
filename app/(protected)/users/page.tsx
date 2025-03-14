@@ -18,6 +18,13 @@ interface User {
   }
 }
 
+interface SSLUserData {
+  firstName: string
+  lastName: string
+  group: string
+  ssl: number
+}
+
 export default function UsersPage() {
   // State for users
   const [users, setUsers] = useState<User[]>([])
@@ -29,6 +36,8 @@ export default function UsersPage() {
   const [startDate, setStartDate] = useState(format(new Date(new Date().getFullYear(), 0, 1), 'yyyy-MM-dd'))
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [exportLoading, setExportLoading] = useState(false)
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [hasSSLFiles, setHasSSLFiles] = useState(false)
   
   // State for editing
   const [editingUserId, setEditingUserId] = useState<string | null>(null)
@@ -68,6 +77,20 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers()
   }, [fetchUsers])
+  
+  // Check for existing SSL files
+  useEffect(() => {
+    const checkSSLFiles = async () => {
+      try {
+        const response = await fetch('/api/users/export/local/check')
+        const data = await response.json()
+        setHasSSLFiles(data.exists)
+      } catch (error) {
+        console.error('Error checking SSL files:', error)
+      }
+    }
+    checkSSLFiles()
+  }, [])
   
   // Handle filter changes
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -129,31 +152,98 @@ export default function UsersPage() {
     setEditingGroup(null)
   }
   
-  // Handle CSV export
-  const handleExportCSV = async () => {
+  // Handle PDF file change
+  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && file.type === 'application/pdf') {
+      setPdfFile(file)
+    } else {
+      setError('Please select a valid PDF file')
+    }
+  }
+  
+  // Handle SSL export
+  const handleExportSSL = async () => {
+    if (!pdfFile) {
+      setError('Please select a PDF template file')
+      return
+    }
+    
     setExportLoading(true)
     setError(null)
     
     try {
+      // First, upload the PDF template
+      const formData = new FormData()
+      formData.append('pdf', pdfFile)
+      
+      const uploadResponse = await fetch('/api/users/export/local', {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload PDF template')
+      }
+      
+      // Then, get the SSL data
       const response = await fetch(`/api/users/export?startDate=${startDate}&endDate=${endDate}`)
       
       if (!response.ok) {
-        throw new Error('Failed to generate CSV')
+        throw new Error('Failed to generate SSL data')
       }
       
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `ssl-hours-${startDate}-to-${endDate}.csv`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      const data = await response.json() as SSLUserData[]
       
-      setSuccess('CSV file downloaded successfully')
+      // Format the data according to the specified structure
+      const formattedData = data.map((user) => ({
+        name: `${user.lastName}, ${user.firstName}`,
+        group: `CAPSA-MC, ${user.group}`,
+        startDate: format(new Date(startDate), 'M/d/yyyy'),
+        endDate: format(new Date(endDate), 'M/d/yyyy'),
+        ssl: user.ssl.toString()
+      }))
+      
+      // Save the JSON data
+      const response2 = await fetch('/api/users/export/local', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formattedData)
+      })
+      
+      if (!response2.ok) {
+        throw new Error('Failed to save SSL data')
+      }
+      
+      setHasSSLFiles(true)
+      setSuccess('SSL data and PDF template saved successfully')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while exporting')
+      setError(err instanceof Error ? err.message : 'An error occurred while saving SSL data')
+    } finally {
+      setExportLoading(false)
+    }
+  }
+  
+  // Handle disable SSL download
+  const handleDisableSSL = async () => {
+    setExportLoading(true)
+    setError(null)
+    
+    try {
+      const response = await fetch('/api/users/export/local', {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete SSL files')
+      }
+      
+      setHasSSLFiles(false)
+      setSuccess('SSL files deleted successfully')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while deleting SSL files')
     } finally {
       setExportLoading(false)
     }
@@ -201,10 +291,10 @@ export default function UsersPage() {
         </div>
       </div>
       
-      {/* CSV Export Section */}
+      {/* SSL Export Section */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">Export SSL Hours</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
               Start Date
@@ -230,25 +320,66 @@ export default function UsersPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
+        </div>
+        
+        {/* PDF Template Upload and Action Button */}
+        <div className="mt-4 flex gap-4 items-end">
+          <div className="flex-1">
+            <label htmlFor="pdfTemplate" className="block text-sm font-medium text-gray-700 mb-1">
+              PDF Template
+            </label>
+            <input
+              type="file"
+              id="pdfTemplate"
+              accept=".pdf"
+              onChange={handlePdfChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+            {pdfFile && (
+              <p className="mt-1 text-sm text-gray-500">
+                Selected file: {pdfFile.name}
+              </p>
+            )}
+          </div>
           
-          <div className="flex items-end">
-            <button
-              onClick={handleExportCSV}
-              disabled={exportLoading}
-              className="w-full px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {exportLoading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Generating CSV...
-                </span>
-              ) : (
-                'Export CSV'
-              )}
-            </button>
+          <div className="w-48">
+            {hasSSLFiles ? (
+              <button
+                onClick={handleDisableSSL}
+                disabled={exportLoading}
+                className="w-full px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {exportLoading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting SSL files...
+                  </span>
+                ) : (
+                  'Disable SSL Download'
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleExportSSL}
+                disabled={exportLoading || !pdfFile}
+                className="w-full px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {exportLoading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving SSL data...
+                  </span>
+                ) : (
+                  'Enable SSL Download'
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
