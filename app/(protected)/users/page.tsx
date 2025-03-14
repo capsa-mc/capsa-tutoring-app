@@ -82,7 +82,7 @@ export default function UsersPage() {
   useEffect(() => {
     const checkSSLFiles = async () => {
       try {
-        const response = await fetch('/api/users/export/local/check')
+        const response = await fetch('/api/ssl/bucket')
         const data = await response.json()
         setHasSSLFiles(data.exists)
       } catch (error) {
@@ -177,7 +177,7 @@ export default function UsersPage() {
       const formData = new FormData()
       formData.append('pdf', pdfFile)
       
-      const uploadResponse = await fetch('/api/users/export/local', {
+      const uploadResponse = await fetch('/api/ssl/bucket', {
         method: 'POST',
         body: formData
       })
@@ -205,7 +205,7 @@ export default function UsersPage() {
       }))
       
       // Save the JSON data
-      const response2 = await fetch('/api/users/export/local', {
+      const response2 = await fetch('/api/ssl/bucket', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -232,7 +232,7 @@ export default function UsersPage() {
     setError(null)
     
     try {
-      const response = await fetch('/api/users/export/local', {
+      const response = await fetch('/api/ssl/bucket', {
         method: 'DELETE'
       })
       

@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
+import { createClient } from '@/lib/supabase'
 import { PDFDocument, PDFTextField } from 'pdf-lib'
+import { cookies } from 'next/headers'
+import { StorageError } from '@supabase/storage-js'
 
 interface SslRecord {
   name: string
+  group: string
+  startDate: string
+  endDate: string
+  ssl: string
   [key: string]: unknown
 }
 
@@ -19,11 +24,38 @@ interface RequestBody {
   lastName: string
 }
 
+const BUCKET_NAME = 'private-files'
+const SSL_PDF_NAME = 'ssl.pdf'
+const SSL_JSON_NAME = 'ssl.json'
+
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
+    const cookieStore = await cookies()
+    const supabase = createClient(cookieStore)
+
+    // Debug: Check auth state
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    console.log('POST - Auth check:', { 
+      hasUser: !!user, 
+      userId: user?.id,
+      authError 
+    })
+
+    if (authError) {
+      throw new Error(`Authentication error: ${authError.message}`)
+    }
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized - No user found' }, { status: 401 })
+    }
+
     const body = await request.json() as RequestBody
     
     if (!body.firstName || !body.lastName) {
@@ -35,16 +67,55 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const fullName = `${body.lastName}, ${body.firstName}`
 
-    // Read SSL JSON data
-    const sslJsonPath = path.join(process.cwd(), 'local', 'ssl.json')
-    if (!fs.existsSync(sslJsonPath)) {
-      return NextResponse.json(
-        { error: 'SSL data file not found' },
-        { status: 404 }
-      )
+    // First check if files exist
+    const { data: files, error: listError } = await supabase
+      .storage
+      .from(BUCKET_NAME)
+      .list('', {
+        search: SSL_JSON_NAME
+      })
+
+    console.log('POST - File check:', {
+      files,
+      listError
+    })
+
+    if (listError) {
+      console.error('List error:', listError)
+      throw new Error(`Storage list error: ${listError.message}`)
     }
 
-    const sslData = JSON.parse(fs.readFileSync(sslJsonPath, 'utf-8')) as SslRecord[]
+    if (!files?.some(file => file.name === SSL_JSON_NAME)) {
+      return NextResponse.json({ error: 'SSL data file not found' }, { status: 404 })
+    }
+
+    // Get signed URL for JSON file
+    const { data: jsonSignedData, error: jsonSignedError } = await supabase
+      .storage
+      .from(BUCKET_NAME)
+      .createSignedUrl(SSL_JSON_NAME, 60)
+
+    console.log('POST - JSON Signed URL:', {
+      jsonSignedData,
+      jsonSignedError
+    })
+
+    if (jsonSignedError) {
+      console.error('JSON Signed URL error:', jsonSignedError)
+      throw new Error(`Failed to create JSON signed URL: ${jsonSignedError.message}`)
+    }
+
+    if (!jsonSignedData?.signedUrl) {
+      throw new Error('No signed URL received for JSON file')
+    }
+
+    // Download JSON data using signed URL
+    const jsonResponse = await fetch(jsonSignedData.signedUrl)
+    if (!jsonResponse.ok) {
+      throw new Error(`Failed to download JSON file: ${jsonResponse.statusText}`)
+    }
+
+    const sslData = await jsonResponse.json() as SslRecord[]
     
     // Find matching record
     const sslRecord = sslData.find((record) => record.name === fullName)
@@ -55,16 +126,33 @@ export async function POST(request: Request): Promise<NextResponse> {
       )
     }
 
-    // Read PDF template
-    const sslPdfPath = path.join(process.cwd(), 'local', 'ssl.pdf')
-    if (!fs.existsSync(sslPdfPath)) {
-      return NextResponse.json(
-        { error: 'SSL PDF template not found' },
-        { status: 404 }
-      )
+    // Get signed URL for PDF file
+    const { data: pdfSignedData, error: pdfSignedError } = await supabase
+      .storage
+      .from(BUCKET_NAME)
+      .createSignedUrl(SSL_PDF_NAME, 60)
+
+    console.log('POST - PDF Signed URL:', {
+      pdfSignedData,
+      pdfSignedError
+    })
+
+    if (pdfSignedError) {
+      console.error('PDF Signed URL error:', pdfSignedError)
+      throw new Error(`Failed to create PDF signed URL: ${pdfSignedError.message}`)
     }
 
-    const pdfBytes = fs.readFileSync(sslPdfPath)
+    if (!pdfSignedData?.signedUrl) {
+      throw new Error('No signed URL received for PDF file')
+    }
+
+    // Download PDF using signed URL
+    const pdfResponse = await fetch(pdfSignedData.signedUrl)
+    if (!pdfResponse.ok) {
+      throw new Error(`Failed to download PDF file: ${pdfResponse.statusText}`)
+    }
+
+    const pdfBytes = await pdfResponse.arrayBuffer()
     const pdfDoc = await PDFDocument.load(pdfBytes)
     const form = pdfDoc.getForm()
 
@@ -96,7 +184,8 @@ export async function POST(request: Request): Promise<NextResponse> {
             }
           }
         } catch (err) {
-          console.warn(`Error processing field ${field.getName()}:`, err)
+          const error = err instanceof Error ? err : new Error('Unknown error')
+          console.warn(`Error processing field ${field.getName()}:`, error)
         }
       }
     })
@@ -112,10 +201,22 @@ export async function POST(request: Request): Promise<NextResponse> {
     })
   } catch (error: unknown) {
     console.error('Error generating SSL form:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate SSL form'
+    let status = 500
+    let message = 'Failed to generate SSL form'
+
+    if (error instanceof Error) {
+      message = error.message
+      if (error instanceof StorageError && error.message.includes('status code')) {
+        const match = error.message.match(/status code (\d+)/)
+        if (match) {
+          status = parseInt(match[1], 10)
+        }
+      }
+    }
+
     return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
+      { error: message },
+      { status }
     )
   }
 } 

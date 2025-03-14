@@ -20,7 +20,7 @@ export default function SslFormDownload({ userRole, firstName, lastName }: SslFo
   useEffect(() => {
     const checkSslFiles = async () => {
       try {
-        const response = await fetch('/api/ssl/check-files')
+        const response = await fetch('/api/ssl/bucket')
         const data = await response.json()
         if (data.exists) {
           const sslResponse = await fetch('/api/ssl/data')
