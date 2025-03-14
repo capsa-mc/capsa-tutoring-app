@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase'
 import { SessionType, AttendanceType, SessionStatus, Role } from '@/types/database/schema'
 import { formatInTimeZone } from '@/lib/date-utils'
 import AttendanceStats from './AttendanceStats'
+import SslFormDownload from './SslFormDownload'
 
 interface Session {
   id: number
@@ -12,6 +13,12 @@ interface Session {
   type: SessionType
   status: SessionStatus
   comment: string | null
+}
+
+interface Profile {
+  id: string
+  first_name: string | null
+  last_name: string | null
 }
 
 interface MyTutoringProps {
@@ -36,6 +43,7 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
   const [excusedSessions, setExcusedSessions] = useState<Set<number>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [sslHours, setSslHours] = useState<number>(0)
+  const [profile, setProfile] = useState<Profile | null>(null)
   
   useEffect(() => {
     const fetchSslHours = async () => {
@@ -145,6 +153,29 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
     fetchUpcomingSessions()
   }, [userId, userRole])
   
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const supabase = createClient()
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single()
+        
+        if (profileError) {
+          throw profileError
+        }
+        
+        setProfile(profileData)
+      } catch (err) {
+        console.error('Error fetching profile:', err)
+      }
+    }
+    
+    fetchProfile()
+  }, [userId])
+  
   const handleExcuse = async (sessionId: number) => {
     setExcuseLoading(sessionId)
     setError(null)
@@ -218,9 +249,16 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
         {(userRole === Role.Coordinator || userRole === Role.Tutor) && (
           <div className="mb-6">
             <h3 className="font-medium mb-2">My SSL Hours:</h3>
-            <div className="flex items-center">
+            <div className="flex items-center gap-4">
               <div className="px-3 py-1 bg-sky-100 text-sky-800 rounded-full text-sm font-medium">
                 {sslHours} hours
+              </div>
+              <div className="ml-4">
+                <SslFormDownload 
+                  userRole={userRole}
+                  firstName={profile?.first_name || null}
+                  lastName={profile?.last_name || null}
+                />
               </div>
             </div>
           </div>
