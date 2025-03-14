@@ -2,3 +2,5 @@
 .next
 node_modules
 chat.md
+local/ssl.json
+local/ssl.pdf
