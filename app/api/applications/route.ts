@@ -114,8 +114,8 @@ export async function GET(request: Request) {
       // Staff can see applications for Tutor and Tutee
       query = query.in('apply_role', [Role.Tutor, Role.Tutee])
     } else if (userRole === Role.Coordinator) {
-      // Coordinator can only see applications for Tutee
-      query = query.eq('apply_role', Role.Tutee)
+      // Coordinator can see applications for both Tutor and Tutee
+      query = query.in('apply_role', [Role.Tutor, Role.Tutee])
     }
     
     // Execute the query
@@ -181,7 +181,7 @@ export async function POST(request: Request) {
     const canApprove = (approverRole: Role, requestedRole: Role) => {
       if (approverRole === Role.Admin) return true
       if (approverRole === Role.Staff && [Role.Tutor, Role.Tutee].includes(requestedRole as Role)) return true
-      if (approverRole === Role.Coordinator && requestedRole === Role.Tutee) return true
+      if (approverRole === Role.Coordinator && [Role.Tutor, Role.Tutee].includes(requestedRole as Role)) return true
       return false
     }
     

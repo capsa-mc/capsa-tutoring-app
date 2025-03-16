@@ -6,6 +6,8 @@ import { theme } from '@/app/styles/theme'
 import FormInput from '@/app/components/forms/FormInput'
 import FormSelect from '@/app/components/forms/FormSelect'
 import { createClient, getCurrentUser, getUserProfile } from '@/lib/supabase'
+import { Dialog } from '@/app/components/Dialog'
+import { toast } from 'react-hot-toast'
 
 interface Application {
   id: string
@@ -17,6 +19,14 @@ interface Application {
   apply_role: Role | null
 }
 
+interface ConfirmDialogProps {
+  isOpen: boolean
+  action: 'approve' | 'reject'
+  application: Application | null
+  onConfirm: () => void
+  onCancel: () => void
+}
+
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,6 +34,13 @@ export default function ApplicationsPage() {
   const [nameFilter, setNameFilter] = useState('')
   const [groupFilter, setGroupFilter] = useState('')
   const [userRole, setUserRole] = useState<Role | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogProps>({
+    isOpen: false,
+    action: 'approve',
+    application: null,
+    onConfirm: () => {},
+    onCancel: () => {},
+  })
   
   // Fetch applications
   const fetchApplications = useCallback(async () => {
@@ -125,11 +142,15 @@ export default function ApplicationsPage() {
         throw new Error(`Error: ${response.status}`)
       }
       
+      // Show success message
+      toast.success('Application approved successfully')
+      
       // Refresh applications list
       fetchApplications()
     } catch (err) {
       console.error('Error approving application:', err)
       setError('Failed to approve application')
+      toast.error('Failed to approve application')
     }
   }
   
@@ -151,11 +172,15 @@ export default function ApplicationsPage() {
         throw new Error(`Error: ${response.status}`)
       }
       
+      // Show success message
+      toast.success('Application rejected successfully')
+      
       // Refresh applications list
       fetchApplications()
     } catch (err) {
       console.error('Error rejecting application:', err)
       setError('Failed to reject application')
+      toast.error('Failed to reject application')
     }
   }
   
@@ -165,7 +190,7 @@ export default function ApplicationsPage() {
     
     if (userRole === Role.Admin) return true
     if (userRole === Role.Staff && [Role.Tutor, Role.Tutee].includes(requestedRole)) return true
-    if (userRole === Role.Coordinator && requestedRole === Role.Tutee) return true
+    if (userRole === Role.Coordinator && [Role.Tutor, Role.Tutee].includes(requestedRole)) return true
     
     return false
   }
@@ -185,6 +210,34 @@ export default function ApplicationsPage() {
   const handleApplyFilters = (e: React.FormEvent) => {
     e.preventDefault()
     fetchApplications()
+  }
+
+  // Show confirm dialog for approve
+  const showApproveConfirm = (application: Application) => {
+    setConfirmDialog({
+      isOpen: true,
+      action: 'approve',
+      application,
+      onConfirm: () => {
+        handleApprove(application.id, application.apply_role as Role)
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }))
+      },
+      onCancel: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
+    })
+  }
+
+  // Show confirm dialog for reject
+  const showRejectConfirm = (application: Application) => {
+    setConfirmDialog({
+      isOpen: true,
+      action: 'reject',
+      application,
+      onConfirm: () => {
+        handleReject(application.id)
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }))
+      },
+      onCancel: () => setConfirmDialog(prev => ({ ...prev, isOpen: false }))
+    })
   }
   
   return (
@@ -306,27 +359,23 @@ export default function ApplicationsPage() {
                             {application.apply_role}
                           </span>
                         </td>
-                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            {canApproveRole(application.apply_role as Role) ? (
-                              <>
-                                <button
-                                  onClick={() => handleApprove(application.id, application.apply_role as Role)}
-                                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors"
-                                >
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() => handleReject(application.id)}
-                                  className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-                                >
-                                  Reject
-                                </button>
-                              </>
-                            ) : (
-                              <span className="text-gray-400 text-xs sm:text-sm">Cannot Approve</span>
-                            )}
-                          </div>
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                          {canApproveRole(application.apply_role as Role) && (
+                            <>
+                              <button
+                                onClick={() => showApproveConfirm(application)}
+                                className="text-green-600 hover:text-green-900 bg-green-100 hover:bg-green-200 px-3 py-1 rounded-md"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => showRejectConfirm(application)}
+                                className="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-3 py-1 rounded-md"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -337,6 +386,52 @@ export default function ApplicationsPage() {
           )}
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+      >
+        <div className="p-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">
+            {confirmDialog.action === 'approve' ? 'Approve Application' : 'Reject Application'}
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {confirmDialog.action === 'approve' ? (
+              <>
+                Are you sure you want to approve the application for{' '}
+                <span className="font-medium">{confirmDialog.application?.first_name} {confirmDialog.application?.last_name}</span>?
+                Their role will be updated to {confirmDialog.application?.apply_role}.
+              </>
+            ) : (
+              <>
+                Are you sure you want to reject the application for{' '}
+                <span className="font-medium">{confirmDialog.application?.first_name} {confirmDialog.application?.last_name}</span>?
+              </>
+            )}
+          </p>
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+              onClick={confirmDialog.onCancel}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                confirmDialog.action === 'approve'
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : 'bg-red-600 hover:bg-red-700'
+              }`}
+              onClick={confirmDialog.onConfirm}
+            >
+              {confirmDialog.action === 'approve' ? 'Approve' : 'Reject'}
+            </button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   )
 } 
