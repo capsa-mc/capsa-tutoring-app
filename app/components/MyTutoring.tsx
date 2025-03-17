@@ -4,6 +4,8 @@ import { SessionType, AttendanceType, SessionStatus, Role } from '@/types/databa
 import { formatInTimeZone } from '@/lib/date-utils'
 import AttendanceStats from './AttendanceStats'
 import SslFormDownload from './SslFormDownload'
+import DatePicker from 'react-datepicker'
+import "react-datepicker/dist/react-datepicker.css"
 
 interface Session {
   id: number
@@ -38,12 +40,14 @@ interface MyTutoringProps {
 
 export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: MyTutoringProps) {
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([])
+  const [allSessions, setAllSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [excuseLoading, setExcuseLoading] = useState<number | null>(null)
   const [excusedSessions, setExcusedSessions] = useState<Set<number>>(new Set())
   const [error, setError] = useState<string | null>(null)
   const [sslHours, setSslHours] = useState<number>(0)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
   
   useEffect(() => {
     const fetchSslHours = async () => {
@@ -87,7 +91,7 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
   }, [userId, userRole])
   
   useEffect(() => {
-    const fetchUpcomingSessions = async () => {
+    const fetchAllSessions = async () => {
       setLoading(true)
       setError(null)
       
@@ -97,7 +101,7 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
         // Get current date
         const today = new Date().toISOString().split('T')[0]
         
-        // Fetch upcoming tutoring sessions
+        // Fetch all tutoring sessions
         const { data: sessions, error: sessionError } = await supabase
           .from('sessions')
           .select('*')
@@ -109,18 +113,24 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
           throw sessionError
         }
         
-        if (sessions && sessions.length > 0) {
-          // Get the next date that has sessions
-          const nextDate = sessions[0].date
-          const nextDateSessions = sessions.filter(s => s.date === nextDate)
+        if (sessions) {
+          setAllSessions(sessions)
           
-          // Show all sessions for all roles
-          setUpcomingSessions(nextDateSessions)
+          // If no date is selected, show today's sessions
+          if (!selectedDate) {
+            const todaySessions = sessions.filter(s => s.date === today)
+            setUpcomingSessions(todaySessions)
+          } else {
+            // Show sessions for selected date
+            const selectedDateStr = selectedDate.toISOString().split('T')[0]
+            const selectedDateSessions = sessions.filter(s => s.date === selectedDateStr)
+            setUpcomingSessions(selectedDateSessions)
+          }
           
           // Check excused status for all sessions
           const excusedSet = new Set<number>()
           
-          for (const session of nextDateSessions) {
+          for (const session of sessions) {
             const { data: attendance, error: attendanceError } = await supabase
               .from('attendances')
               .select('*')
@@ -140,18 +150,19 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
           
           setExcusedSessions(excusedSet)
         } else {
+          setAllSessions([])
           setUpcomingSessions([])
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
-        console.error('Error fetching upcoming sessions:', err)
+        console.error('Error fetching sessions:', err)
       } finally {
         setLoading(false)
       }
     }
     
-    fetchUpcomingSessions()
-  }, [userId, userRole])
+    fetchAllSessions()
+  }, [userId, userRole, selectedDate])
   
   useEffect(() => {
     const fetchProfile = async () => {
@@ -233,6 +244,18 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
       time: `${session.hours} hours`
     }
   }
+
+  // Custom day renderer to highlight dates with sessions
+  const renderDayContents = (day: number, date: Date) => {
+    const dateStr = date.toISOString().split('T')[0]
+    const hasSession = allSessions.some(s => s.date === dateStr)
+    
+    return (
+      <div className={`relative ${hasSession ? 'bg-blue-100 rounded-full' : ''}`}>
+        {day}
+      </div>
+    )
+  }
   
   return (
     <div className="bg-white shadow-md rounded-lg overflow-hidden mt-8">
@@ -248,18 +271,16 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
         {/* SSL Hours Section - Only show for Coordinator and Tutor */}
         {(userRole === Role.Coordinator || userRole === Role.Tutor) && (
           <div className="mb-6">
-            <h3 className="font-medium mb-2">My SSL Hours:</h3>
-            <div className="flex items-center gap-4">
-              <div className="px-3 py-1 bg-sky-100 text-sky-800 rounded-full text-sm font-medium">
-                {sslHours} hours
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">SSL Hours</h3>
+                <p className="text-sm text-gray-500">Total hours completed: {sslHours}</p>
               </div>
-              <div className="ml-4">
-                <SslFormDownload 
-                  userRole={userRole}
-                  firstName={profile?.first_name || null}
-                  lastName={profile?.last_name || null}
-                />
-              </div>
+              <SslFormDownload 
+                userRole={userRole}
+                firstName={profile?.first_name || null}
+                lastName={profile?.last_name || null}
+              />
             </div>
           </div>
         )}
@@ -293,81 +314,78 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
         <AttendanceStats userId={userId} />
         
         {/* Upcoming Sessions */}
-        <div>
-          <h3 className="font-medium mb-2">Upcoming Sessions:</h3>
+        <div className="mb-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Upcoming Sessions</h3>
+          
+          {/* Date Picker */}
+          <div className="mb-4">
+            <DatePicker
+              selected={selectedDate}
+              onChange={(date: Date | null) => setSelectedDate(date)}
+              renderDayContents={renderDayContents}
+              minDate={new Date()}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              dateFormat="MMMM d, yyyy"
+            />
+          </div>
           
           {loading ? (
-            <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-sky-500"></div>
+            <div className="flex justify-center items-center py-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
             </div>
-          ) : upcomingSessions.length > 0 ? (
-            <div className="space-y-4">
-              {upcomingSessions.map(session => (
-                <div key={session.id} className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      {/* Weekday */}
-                      <div className="flex items-center space-x-2">
-                        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded text-sm font-medium">
-                          {formatSessionTime(session).weekday}
-                        </span>
-                        <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-sm font-medium">
-                          {session.type}
-                        </span>
-                      </div>
-                      
-                      {/* Date and Time */}
-                      <p className="text-gray-900">
-                        <span className="font-medium">{formatSessionTime(session).date}</span>
-                        <span className="mx-2 text-gray-400">|</span>
-                        <span className="text-sky-600">{formatSessionTime(session).time}</span>
-                      </p>
-                      
-                      {/* Location */}
-                      <p className="text-gray-600 text-sm flex items-center">
-                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        {session.location}
-                      </p>
-
-                      {/* Comment */}
-                      {session.comment && (
-                        <p className="text-gray-600 text-sm flex items-center">
-                          <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                          </svg>
-                          {session.comment}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <button
-                      onClick={() => handleExcuse(session.id)}
-                      disabled={excuseLoading !== null}
-                      className={`px-4 py-2 rounded-md text-white transition-colors
-                        ${excusedSessions.has(session.id)
-                          ? 'bg-red-500 hover:bg-red-600' 
-                          : 'bg-sky-500 hover:bg-sky-600'
-                        } disabled:opacity-50`}
-                    >
-                      {excuseLoading === session.id ? (
-                        <span className="inline-flex items-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Processing...
-                        </span>
-                      ) : excusedSessions.has(session.id) ? 'Cancel' : 'Excuse'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+          ) : upcomingSessions.length === 0 ? (
+            <p className="text-gray-500">No sessions scheduled for this date.</p>
           ) : (
-            <p className="text-gray-600">No upcoming tutoring sessions.</p>
+            <div className="space-y-4">
+              {upcomingSessions.map((session) => {
+                const time = formatSessionTime(session)
+                const isExcused = excusedSessions.has(session.id)
+                
+                return (
+                  <div
+                    key={session.id}
+                    className="border rounded-lg p-4 hover:bg-gray-50"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium text-gray-900">
+                          {time.weekday}, {time.date}
+                        </h4>
+                        <p className="text-sm text-gray-500">{time.time}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Location: {session.location}
+                        </p>
+                        {session.comment && (
+                          <p className="text-sm text-gray-600 mt-2 flex items-start">
+                            <svg className="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                            </svg>
+                            <span>{session.comment}</span>
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleExcuse(session.id)}
+                        disabled={excuseLoading === session.id}
+                        className={`px-3 py-1 rounded-md text-sm font-medium ${
+                          isExcused
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                            : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                        }`}
+                      >
+                        {excuseLoading === session.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-current"></div>
+                        ) : isExcused ? (
+                          'Excused'
+                        ) : (
+                          'Request Excuse'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
       </div>
