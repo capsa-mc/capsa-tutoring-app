@@ -85,11 +85,12 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const name = url.searchParams.get('name')
     const group = url.searchParams.get('group')
+    const role = url.searchParams.get('role')
     
     // Fetch users with filters
     let query = supabase
       .from('profiles')
-      .select('id, first_name, last_name, group, role')
+      .select('id, first_name, last_name, group, role, student_email, student_phone, parent_email, parent_phone')
     
     if (name) {
       const searchTerm = `%${name}%`
@@ -98,6 +99,10 @@ export async function GET(request: Request) {
     
     if (group) {
       query = query.eq('group', group)
+    }
+
+    if (role) {
+      query = query.eq('role', role)
     }
     
     const { data: users, error: usersError } = await query

@@ -10,6 +10,10 @@ interface User {
   last_name: string | null
   group: Group | null
   role: Role | null
+  student_email: string | null
+  student_phone: string | null
+  parent_email: string | null
+  parent_phone: string | null
   attendance_stats: {
     present: number
     excused: number
@@ -25,11 +29,25 @@ interface SSLUserData {
   ssl: number
 }
 
+// Format phone number to (000)000-0000
+const formatPhoneNumber = (phone: string | null): string => {
+  if (!phone) return ''
+  // Remove all non-digit characters
+  const cleaned = phone.replace(/\D/g, '')
+  // Format the number
+  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/)
+  if (match) {
+    return '(' + match[1] + ')' + match[2] + '-' + match[3]
+  }
+  return phone // Return original if format doesn't match
+}
+
 export default function UsersPage() {
   // State for users
   const [users, setUsers] = useState<User[]>([])
   const [nameFilter, setNameFilter] = useState('')
   const [groupFilter, setGroupFilter] = useState('')
+  const [roleFilter, setRoleFilter] = useState('')
   const [loading, setLoading] = useState(false)
   
   // State for date range
@@ -57,6 +75,7 @@ export default function UsersPage() {
       const queryParams = new URLSearchParams()
       if (nameFilter) queryParams.append('name', nameFilter)
       if (groupFilter) queryParams.append('group', groupFilter)
+      if (roleFilter) queryParams.append('role', roleFilter)
       
       const response = await fetch(`/api/users?${queryParams.toString()}`)
       
@@ -71,7 +90,7 @@ export default function UsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [nameFilter, groupFilter])
+  }, [nameFilter, groupFilter, roleFilter])
   
   // Initial fetch
   useEffect(() => {
@@ -100,6 +119,8 @@ export default function UsersPage() {
       setNameFilter(value)
     } else if (name === 'groupFilter') {
       setGroupFilter(value)
+    } else if (name === 'roleFilter') {
+      setRoleFilter(value)
     }
   }
   
@@ -253,44 +274,7 @@ export default function UsersPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">User Management</h1>
       
-      {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div>
-          <label htmlFor="nameFilter" className="block text-sm font-medium text-gray-700 mb-1">
-            Filter by Name
-          </label>
-          <input
-            type="text"
-            id="nameFilter"
-            name="nameFilter"
-            value={nameFilter}
-            onChange={handleFilterChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Search by name..."
-          />
-        </div>
-        
-        <div>
-          <label htmlFor="groupFilter" className="block text-sm font-medium text-gray-700 mb-1">
-            Filter by Group
-          </label>
-          <select
-            id="groupFilter"
-            name="groupFilter"
-            value={groupFilter}
-            onChange={handleFilterChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">All Groups</option>
-            {Object.values(Group).map((group) => (
-              <option key={group} value={group}>
-                {group}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      
+     
       {/* SSL Export Section */}
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">Export SSL Hours</h2>
@@ -383,6 +367,68 @@ export default function UsersPage() {
           </div>
         </div>
       </div>
+
+       {/* Filters */}
+       <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <h2 className="text-lg font-semibold mb-4">Filters</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div>
+            <label htmlFor="nameFilter" className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Name
+            </label>
+            <input
+              type="text"
+              id="nameFilter"
+              name="nameFilter"
+              value={nameFilter}
+              onChange={handleFilterChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Search by name..."
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="groupFilter" className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Group
+            </label>
+            <select
+              id="groupFilter"
+              name="groupFilter"
+              value={groupFilter}
+              onChange={handleFilterChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="">All Groups</option>
+              {Object.values(Group).map((group) => (
+                <option key={group} value={group}>
+                  {group}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="roleFilter" className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Role
+            </label>
+            <select
+              id="roleFilter"
+              name="roleFilter"
+              value={roleFilter}
+              onChange={handleFilterChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="">All Roles</option>
+              {Object.values(Role).map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+      
       
       {/* Error and Success Messages */}
       {error && (
@@ -474,6 +520,30 @@ export default function UsersPage() {
                       <span className="inline-flex items-center px-2 py-1 rounded bg-orange-50 text-orange-700">
                         Absent Score: {user.attendance_stats.absence_score}
                       </span>
+                    </div>
+
+                    {/* Contact Info */}
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      {user.student_email && (
+                        <span className="inline-flex items-center px-2 py-1 rounded bg-blue-50 text-blue-700">
+                          Student Email: {user.student_email}
+                        </span>
+                      )}
+                      {user.student_phone && (
+                        <span className="inline-flex items-center px-2 py-1 rounded bg-green-50 text-green-700">
+                          Student Phone: {formatPhoneNumber(user.student_phone)}
+                        </span>
+                      )}
+                      {user.parent_email && (
+                        <span className="inline-flex items-center px-2 py-1 rounded bg-purple-50 text-purple-700">
+                          Parent Email: {user.parent_email}
+                        </span>
+                      )}
+                      {user.parent_phone && (
+                        <span className="inline-flex items-center px-2 py-1 rounded bg-orange-50 text-orange-700">
+                          Parent Phone: {formatPhoneNumber(user.parent_phone)}
+                        </span>
+                      )}
                     </div>
                   </div>
                   
