@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Group, Role } from '@/types/database/schema'
+import { Group, Role, Status } from '@/types/database/schema'
 import { format } from 'date-fns'
 
 interface User {
@@ -20,6 +20,7 @@ interface User {
     absent: number
     absence_score: number
   }
+  status: Status
 }
 
 interface SSLUserData {
@@ -48,6 +49,7 @@ export default function UsersPage() {
   const [nameFilter, setNameFilter] = useState('')
   const [groupFilter, setGroupFilter] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [loading, setLoading] = useState(false)
   
   // State for date range
@@ -61,6 +63,7 @@ export default function UsersPage() {
   const [editingUserId, setEditingUserId] = useState<string | null>(null)
   const [editingRole, setEditingRole] = useState<Role | null>(null)
   const [editingGroup, setEditingGroup] = useState<Group | null>(null)
+  const [editingStatus, setEditingStatus] = useState<Status | null>(null)
   
   // State for operations
   const [error, setError] = useState<string | null>(null)
@@ -76,6 +79,7 @@ export default function UsersPage() {
       if (nameFilter) queryParams.append('name', nameFilter)
       if (groupFilter) queryParams.append('group', groupFilter)
       if (roleFilter) queryParams.append('role', roleFilter)
+      if (statusFilter) queryParams.append('status', statusFilter)
       
       const response = await fetch(`/api/users?${queryParams.toString()}`)
       
@@ -90,7 +94,7 @@ export default function UsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [nameFilter, groupFilter, roleFilter])
+  }, [nameFilter, groupFilter, roleFilter, statusFilter])
   
   // Initial fetch
   useEffect(() => {
@@ -121,6 +125,8 @@ export default function UsersPage() {
       setGroupFilter(value)
     } else if (name === 'roleFilter') {
       setRoleFilter(value)
+    } else if (name === 'statusFilter') {
+      setStatusFilter(value)
     }
   }
   
@@ -129,6 +135,7 @@ export default function UsersPage() {
     setEditingUserId(user.id)
     setEditingRole(user.role)
     setEditingGroup(user.group)
+    setEditingStatus(user.status)
   }
   
   // Handle save edit
@@ -147,7 +154,8 @@ export default function UsersPage() {
         body: JSON.stringify({
           userId: editingUserId,
           role: editingRole,
-          group: editingGroup
+          group: editingGroup,
+          status: editingStatus
         })
       })
       
@@ -171,6 +179,7 @@ export default function UsersPage() {
     setEditingUserId(null)
     setEditingRole(null)
     setEditingGroup(null)
+    setEditingStatus(null)
   }
   
   // Handle PDF file change
@@ -428,6 +437,26 @@ export default function UsersPage() {
               ))}
             </select>
           </div>
+
+          <div>
+            <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Status
+            </label>
+            <select
+              id="statusFilter"
+              name="statusFilter"
+              value={statusFilter}
+              onChange={handleFilterChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="">All Statuses</option>
+              {Object.values(Status).map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
       
@@ -503,6 +532,31 @@ export default function UsersPage() {
                         ) : (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {user.group}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Status */}
+                      <div className="flex items-center gap-2">
+                        {editingUserId === user.id ? (
+                          <select
+                            value={editingStatus || ''}
+                            onChange={(e) => setEditingStatus(e.target.value as Status)}
+                            className="text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 py-1"
+                          >
+                            {Object.values(Status).map((status) => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            user.status === Status.Active 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {user.status}
                           </span>
                         )}
                       </div>

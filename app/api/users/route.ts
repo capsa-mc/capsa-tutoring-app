@@ -86,11 +86,12 @@ export async function GET(request: Request) {
     const name = url.searchParams.get('name')
     const group = url.searchParams.get('group')
     const role = url.searchParams.get('role')
+    const status = url.searchParams.get('status')
     
     // Fetch users with filters
     let query = supabase
       .from('profiles')
-      .select('id, first_name, last_name, group, role, student_email, student_phone, parent_email, parent_phone')
+      .select('id, first_name, last_name, group, role, student_email, student_phone, parent_email, parent_phone, status')
     
     if (name) {
       const searchTerm = `%${name}%`
@@ -111,6 +112,10 @@ export async function GET(request: Request) {
       } else {
         query = query.eq('role', role)
       }
+    }
+
+    if (status) {
+      query = query.eq('status', status)
     }
     
     const { data: users, error: usersError } = await query
@@ -168,7 +173,7 @@ export async function PATCH(request: Request) {
     const supabase = await createServerSupabaseClient()
     
     // Get update data from request
-    const { userId, role, group } = await request.json()
+    const { userId, role, group, status } = await request.json()
     
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
@@ -179,7 +184,8 @@ export async function PATCH(request: Request) {
       .from('profiles')
       .update({
         role: role || undefined,
-        group: group || undefined
+        group: group || undefined,
+        status: status || undefined
       })
       .eq('id', userId)
       .select()

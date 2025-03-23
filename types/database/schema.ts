@@ -22,10 +22,21 @@ export enum Role {
   Tutee = 'Tutee'
 }
 
+export enum Status {
+  Active = 'Active',
+  Inactive = 'Inactive'
+}
+
 export enum SessionType {
   Tutoring = 'Tutoring',
   Training = 'Training',
   Adhoc = 'Adhoc'
+}
+
+export enum SessionStatus {
+  Before = 'Before',
+  During = 'During',
+  After = 'After'
 }
 
 export enum AttendanceType {
@@ -34,10 +45,65 @@ export enum AttendanceType {
   Absent = 'Absent'
 }
 
-export enum SessionStatus {
-  Before = 'Before',
-  During = 'During',
-  After = 'After'
+export enum PaymentMethod {
+  Cash = 'Cash',
+  Paypal = 'Paypal',
+  Venmo = 'Venmo',
+  Zelle = 'Zelle'
+}
+
+export interface Profile {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  avatar_url: string | null
+  student_phone: string | null
+  student_email: string | null
+  parent_phone: string | null
+  parent_email: string | null
+  group: Group | null
+  role: Role | null
+  apply_role: Role | null
+  status: Status
+}
+
+export interface Session {
+  id: number
+  location: string
+  date: string
+  type: SessionType
+  comment: string | null
+  hours: number
+  status: SessionStatus
+}
+
+export interface Attendance {
+  id: number
+  session_id: number
+  user_id: string
+  attendance_type: AttendanceType
+}
+
+export interface Pair {
+  id: number
+  tutor_id: string | null
+  tutee_id: string | null
+}
+
+export interface Payment {
+  id: number
+  created_at: string
+  amount: number
+  payment_method: PaymentMethod
+  comment: string | null
+  user_id: string
+}
+
+export interface Content {
+  id: number
+  name: string | null
+  content: string | null
+  old_content: string | null
 }
 
 export interface Database {
