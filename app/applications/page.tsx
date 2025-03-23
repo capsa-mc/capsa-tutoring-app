@@ -189,7 +189,7 @@ export default function ApplicationsPage() {
     if (!userRole) return false
     
     if (userRole === Role.Admin) return true
-    if (userRole === Role.Staff && [Role.Tutor, Role.Tutee].includes(requestedRole)) return true
+    if (userRole === Role.Staff && [Role.Coordinator, Role.Tutor, Role.Tutee].includes(requestedRole)) return true
     if (userRole === Role.Coordinator && [Role.Tutor, Role.Tutee].includes(requestedRole)) return true
     
     return false

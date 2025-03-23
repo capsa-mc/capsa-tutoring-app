@@ -180,7 +180,7 @@ export async function POST(request: Request) {
     // Check if the current user can approve/reject this role
     const canApprove = (approverRole: Role, requestedRole: Role) => {
       if (approverRole === Role.Admin) return true
-      if (approverRole === Role.Staff && [Role.Tutor, Role.Tutee].includes(requestedRole as Role)) return true
+      if (approverRole === Role.Staff && [Role.Coordinator, Role.Tutor, Role.Tutee].includes(requestedRole as Role)) return true
       if (approverRole === Role.Coordinator && [Role.Tutor, Role.Tutee].includes(requestedRole as Role)) return true
       return false
     }
