@@ -28,10 +28,23 @@ export default function CallbackPage() {
 
     const handleCallback = async () => {
       try {
+        console.log('=== Callback Handler Started ===')
+        console.log('URL Parameters:', {
+          isEmailVerification,
+          code,
+          isRegistration,
+          isResetPassword,
+          error,
+          errorDescription
+        })
+
         // Handle email verification
         if (isEmailVerification) {
+          console.log('Processing email verification...')
           const { data: { user } } = await supabase.auth.getUser()
+          console.log('User data:', user)
           if (user?.id && user?.email) {
+            console.log('Updating profile for user:', user.id)
             // Update profile to mark email as verified and set student_email
             const { error: profileError } = await supabase
               .from('profiles')
@@ -47,29 +60,40 @@ export default function CallbackPage() {
               setErrorMessage('Email verification succeeded, but there was an error updating your profile.')
               return
             }
+            console.log('Profile updated successfully')
           }
         }
         
         // Handle code exchange (OAuth or magic link)
         if (code) {
+          console.log('Processing code exchange...')
           const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+          console.log('Code exchange response:', { data, error })
+          
           if (error) {
             console.error('Error exchanging code for session:', error)
             setProcessingStatus('error')
             setErrorMessage('Failed to authenticate. The link may have expired or is invalid.')
             return
           } else if (data.session) {
-            console.log('Session established successfully')
+            console.log('Session established successfully:', data.session)
             
             // If this is a password reset, redirect to reset password page
             if (isResetPassword) {
+              console.log('Redirecting to reset password page')
               router.push('/reset-password')
               return
             }
+          } else {
+            console.error('No session established after code exchange')
+            setProcessingStatus('error')
+            setErrorMessage('Failed to establish session. Please try again.')
+            return
           }
         }
         
         // If we got here without errors, set success
+        console.log('Setting success status')
         setProcessingStatus('success')
       } catch (error) {
         console.error('Error in callback handling:', error)
@@ -256,4 +280,4 @@ export default function CallbackPage() {
       </div>
     </section>
   )
-} 
+}
