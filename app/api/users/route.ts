@@ -98,11 +98,19 @@ export async function GET(request: Request) {
     }
     
     if (group) {
-      query = query.eq('group', group)
+      if (group === 'null') {
+        query = query.is('group', null)
+      } else {
+        query = query.eq('group', group)
+      }
     }
 
     if (role) {
-      query = query.eq('role', role)
+      if (role === 'null') {
+        query = query.is('role', null)
+      } else {
+        query = query.eq('role', role)
+      }
     }
     
     const { data: users, error: usersError } = await query
