@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import { SessionType, AttendanceType, SessionStatus, Role } from '@/types/database/schema'
-import { formatInTimeZone } from '@/lib/date-utils'
+import { formatInTimeZone, getNYDateString, isSameNYDate } from '@/lib/date-utils'
 import AttendanceStats from './AttendanceStats'
 import SslFormDownload from './SslFormDownload'
 import DatePicker from 'react-datepicker'
@@ -98,8 +98,8 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
       try {
         const supabase = createClient()
         
-        // Get current date
-        const today = new Date().toISOString().split('T')[0]
+        // Get current date in NY timezone
+        const today = getNYDateString()
         
         // Fetch all tutoring sessions
         const { data: sessions, error: sessionError } = await supabase
@@ -118,12 +118,12 @@ export default function MyTutoring({ userId, userRole, tutorInfo, tuteeInfo }: M
           
           // If no date is selected, show today's sessions
           if (!selectedDate) {
-            const todaySessions = sessions.filter(s => s.date === today)
+            const todaySessions = sessions.filter(s => isSameNYDate(s.date, today))
             setUpcomingSessions(todaySessions)
           } else {
             // Show sessions for selected date
             const selectedDateStr = selectedDate.toISOString().split('T')[0]
-            const selectedDateSessions = sessions.filter(s => s.date === selectedDateStr)
+            const selectedDateSessions = sessions.filter(s => isSameNYDate(s.date, selectedDateStr))
             setUpcomingSessions(selectedDateSessions)
           }
           

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Group, Role, SessionType, AttendanceType, SessionStatus } from '@/types/database/schema'
-import { formatInTimeZone, getCurrentDate, formatToISO } from '@/lib/date-utils'
+import { formatInTimeZone, getNYDateString, isSameNYDate } from '@/lib/date-utils'
 
 interface Session {
   id: number
@@ -30,7 +30,7 @@ interface Attendance {
 }
 
 export default function AttendancesPage() {
-  const today = formatToISO(getCurrentDate())
+  const today = getNYDateString()
   
   // State for sessions
   const [sessions, setSessions] = useState<Session[]>([])
@@ -79,7 +79,7 @@ export default function AttendancesPage() {
         let closestSession = result.sessions[0]
         
         // If today's date is selected, find the session with During status
-        if (sessionDate === today) {
+        if (isSameNYDate(sessionDate, today)) {
           const duringSession = result.sessions.find((session: Session) => session.status === SessionStatus.During)
           if (duringSession) {
             closestSession = duringSession

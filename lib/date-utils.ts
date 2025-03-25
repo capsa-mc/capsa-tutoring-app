@@ -17,6 +17,28 @@ export function formatToISO(date: Date): string {
   return formatISO(date, { representation: 'date' })
 }
 
+// New utility functions for consistent date handling
+export function getNYDate(): Date {
+  const now = new Date()
+  return toZonedTime(now, NY_TIMEZONE)
+}
+
+export function getNYDateString(): string {
+  return fnsFormatInTimeZone(new Date(), NY_TIMEZONE, 'yyyy-MM-dd')
+}
+
+export function parseNYDate(dateStr: string): Date {
+  return toZonedTime(parseISO(dateStr), NY_TIMEZONE)
+}
+
+export function isSameNYDate(date1: Date | string, date2: Date | string): boolean {
+  const d1 = typeof date1 === 'string' ? parseNYDate(date1) : toZonedTime(date1, NY_TIMEZONE)
+  const d2 = typeof date2 === 'string' ? parseNYDate(date2) : toZonedTime(date2, NY_TIMEZONE)
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate()
+}
+
 // Convert NY time to UTC
 export function nyTimeToUTC(dateStr: string, timeStr: string): string {
   try {
