@@ -1,0 +1,19 @@
+{
+  "name": "ssl-generator",
+  "version": "1.0.0",
+  "description": "Generate SSL PDFs from template and CSV data",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "generate-ssl": "node --loader ts-node/esm index.ts ssl.pdf ssl.csv output"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "csv-parse": "^5.5.2",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.2"
+  }
+}

@@ -2,3 +2,4 @@
 .next
 node_modules
 chat.md
+.DS_Store
