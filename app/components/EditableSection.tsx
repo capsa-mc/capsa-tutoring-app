@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { EditableSectionProps } from '@/types/editable-section';
 import { theme } from '@/app/styles/theme';
@@ -16,12 +16,8 @@ export default function EditableSection({
   const [isSaving, setIsSaving] = useState(false);
   const supabase = createClientComponentClient();
 
-  useEffect(() => {
-    loadContent();
-  }, [pagePath, sectionKey]);
-
-  const loadContent = async () => {
-    const { data, error } = await supabase
+  const loadContent = useCallback(async () => {
+    const { data } = await supabase
       .from('editable_sections')
       .select('content')
       .eq('page_path', pagePath)
@@ -31,7 +27,11 @@ export default function EditableSection({
     if (data) {
       setContent(data.content);
     }
-  };
+  }, [supabase, pagePath, sectionKey]);
+
+  useEffect(() => {
+    loadContent();
+  }, [loadContent]);
 
   const handleSave = async () => {
     if (!isEditable) return;

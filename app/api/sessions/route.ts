@@ -1,88 +1,16 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { CookieOptions } from '@supabase/ssr'
 import { Role } from '@/types/database/schema'
-
-// Helper function to create a Supabase server client
-const createServerSupabaseClient = async () => {
-  const cookieStore = await cookies()
-  
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options })
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.delete({ name, ...options })
-        },
-      },
-    }
-  )
-}
-
-// Helper function to verify user access
-const verifyUserAccess = async () => {
-  const supabase = await createServerSupabaseClient()
-  
-  // Use getUser instead of getSession for better security
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-  
-  if (userError || !user) {
-    return {
-      success: false,
-      error: 'Unauthorized',
-      status: 401
-    }
-  }
-  
-  // Get user profile to check role
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-  
-  if (profileError || !profile) {
-    return {
-      success: false,
-      error: 'Profile not found',
-      status: 404
-    }
-  }
-  
-  // Check if user has admin, staff, or coordinator role
-  const allowedRoles = [Role.Admin, Role.Staff, Role.Coordinator]
-  if (!allowedRoles.includes(profile.role as Role)) {
-    return {
-      success: false,
-      error: 'Insufficient permissions',
-      status: 403
-    }
-  }
-  
-  return {
-    success: true,
-    user,
-    profile
-  }
-}
+import { verifyUserAccess, createErrorResponse } from '@/lib/server-supabase'
 
 export async function GET(request: Request) {
   try {
     // Verify user access
-    const auth = await verifyUserAccess()
+    const auth = await verifyUserAccess([Role.Admin, Role.Staff, Role.Coordinator])
     if (!auth.success) {
-      return NextResponse.json({ error: auth.error }, { status: auth.status })
+      return createErrorResponse(auth.error, auth.status)
     }
     
-    const supabase = await createServerSupabaseClient()
+    const { supabase } = auth
     
     // Get URL parameters for filtering
     const url = new URL(request.url)
@@ -131,7 +59,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
     
-    const supabase = await createServerSupabaseClient()
+    const { supabase } = auth
     
     // Get session data from request
     const sessionData = await request.json()
@@ -161,7 +89,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
     
-    const supabase = await createServerSupabaseClient()
+    const { supabase } = auth
     
     // Get session ID from URL
     const url = new URL(request.url)
@@ -196,7 +124,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
     
-    const supabase = await createServerSupabaseClient()
+    const { supabase } = auth
     
     // Get session data and ID from request
     const sessionData = await request.json()

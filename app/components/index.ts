@@ -8,5 +8,10 @@ export { default as ScrollLink } from './ScrollLink'
 export { default as FormInput } from './forms/FormInput'
 export { default as FormSelect } from './forms/FormSelect'
 
+// UI components
+export { default as LoadingSpinner } from './ui/LoadingSpinner'
+export { default as FormField } from './ui/FormField'
+export { default as Button } from './ui/Button'
+
 // Common components
 export { default as AuthForm } from './common/AuthForm' 
