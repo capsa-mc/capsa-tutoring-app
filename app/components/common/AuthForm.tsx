@@ -42,7 +42,7 @@ export default function AuthForm({
               <button
                 type="submit"
                 disabled={loading}
-                className={`${theme.button.primary.base} ${theme.button.primary.default} w-full mt-8 ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
+                className={`${theme.button.base} ${theme.button.variants.primary} ${theme.button.sizes.md} w-full mt-8 ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
               >
                 {loading ? loadingText : submitText}
               </button>

@@ -71,13 +71,13 @@ export default function EditableSection({
           />
           <div className="flex justify-end space-x-2">
             <button
-              className={`${theme.button.secondary.base} ${theme.button.secondary.default}`}
+              className={`${theme.button.base} ${theme.button.variants.ghost} ${theme.button.sizes.md}`}
               onClick={() => setIsEditing(false)}
             >
               Cancel
             </button>
             <button
-              className={`${theme.button.primary.base} ${theme.button.primary.default}`}
+              className={`${theme.button.base} ${theme.button.variants.primary} ${theme.button.sizes.md}`}
               onClick={handleSave}
               disabled={isSaving}
             >

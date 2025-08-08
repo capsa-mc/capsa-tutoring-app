@@ -1,5 +1,6 @@
 import { Fragment } from 'react'
 import { Dialog as HeadlessDialog, Transition } from '@headlessui/react'
+import { theme } from '@/app/styles/theme'
 
 interface DialogProps {
   isOpen: boolean
@@ -20,7 +21,7 @@ export function Dialog({ isOpen, onClose, children }: DialogProps) {
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
-          <div className="fixed inset-0 bg-black bg-opacity-25" />
+          <div className={theme.dialog.backdrop} />
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
@@ -34,7 +35,7 @@ export function Dialog({ isOpen, onClose, children }: DialogProps) {
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <HeadlessDialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white text-left align-middle shadow-xl transition-all">
+              <HeadlessDialog.Panel className={theme.dialog.panel}>
                 {children}
               </HeadlessDialog.Panel>
             </Transition.Child>

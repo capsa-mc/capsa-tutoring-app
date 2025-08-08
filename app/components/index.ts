@@ -12,6 +12,9 @@ export { default as FormSelect } from './forms/FormSelect'
 export { default as LoadingSpinner } from './ui/LoadingSpinner'
 export { default as FormField } from './ui/FormField'
 export { default as Button } from './ui/Button'
+export { default as ThemedButton } from './ui/ThemedButton'
+export { default as StatusBadge } from './ui/StatusBadge'
+export { default as DialogContent } from './ui/DialogContent'
 
 // Common components
 export { default as AuthForm } from './common/AuthForm' 

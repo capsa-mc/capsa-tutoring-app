@@ -238,7 +238,7 @@ export default function Header() {
       case 'primary':
         return isMobile 
           ? `w-full text-center py-3 rounded-lg font-medium transition-colors bg-sky-500 text-white hover:bg-sky-600 mb-2`
-          : `${theme.button.primary.base} ${theme.button.primary.default}`
+          : `${theme.button.base} ${theme.button.variants.primary} ${theme.button.sizes.md}`
       case 'secondary':
         return isMobile
           ? `w-full text-center py-3 rounded-lg font-medium transition-colors border border-sky-500 text-sky-500 hover:bg-sky-50 mb-2`

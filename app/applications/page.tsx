@@ -281,7 +281,7 @@ export default function ApplicationsPage() {
             <div className="flex items-end">
               <button
                 type="submit"
-                className={`${theme.button.primary} w-full md:w-auto`}
+                className={`${theme.button.base} ${theme.button.variants.primary} ${theme.button.sizes.md} w-full md:w-auto`}
                 disabled={loading}
               >
                 Apply Filters

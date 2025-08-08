@@ -79,20 +79,29 @@ export const theme = {
     }
   },
   button: {
-    primary: {
-      base: 'px-6 py-3 rounded-lg font-medium transition-all duration-200 text-base focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-sm hover:shadow-md active:shadow-sm',
-      default: 'bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-500',
-      outline: 'border-2 border-sky-500 text-sky-500 hover:bg-sky-50 focus:ring-sky-500'
+    base: 'inline-flex items-center justify-center font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200',
+    variants: {
+      primary: 'bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-500 shadow-sm hover:shadow-md',
+      secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500 shadow-sm',
+      outline: 'border-2 border-sky-500 text-sky-500 hover:bg-sky-50 focus:ring-sky-500',
+      danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm',
+      success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 shadow-sm',
+      ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500'
     },
-    secondary: {
-      base: 'px-6 py-3 rounded-lg font-medium transition-all duration-200 text-base',
-      default: 'border-2 border-sky-500 text-sky-500 hover:bg-sky-50',
-      outline: 'text-sky-500 hover:text-sky-600',
+    sizes: {
+      sm: 'px-3 py-1.5 text-sm',
+      md: 'px-4 py-2 text-sm',
+      lg: 'px-6 py-3 text-base'
     },
     group: {
-      vertical: 'flex flex-col gap-4',
-      horizontal: 'flex flex-row gap-4',
-      responsive: 'flex flex-col sm:flex-row gap-4 justify-center',
+      vertical: 'flex flex-col gap-3',
+      horizontal: 'flex flex-row gap-3',
+      responsive: 'flex flex-col sm:flex-row gap-3 justify-center'
+    },
+    dialog: {
+      primary: 'px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 focus:ring-sky-500',
+      secondary: 'px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:ring-gray-500',
+      danger: 'px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:ring-red-500'
     }
   },
   text: {
@@ -162,5 +171,38 @@ export const theme = {
       section: 'mt-6',
       element: 'mt-4'
     }
+  },
+  dialog: {
+    backdrop: 'fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity',
+    panel: 'relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6',
+    title: 'text-base font-semibold leading-6 text-gray-900',
+    content: 'mt-2 text-sm text-gray-500',
+    actions: 'mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3'
+  },
+  status: {
+    badge: {
+      base: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+      variants: {
+        success: 'bg-green-100 text-green-800',
+        warning: 'bg-yellow-100 text-yellow-800',
+        error: 'bg-red-100 text-red-800',
+        info: 'bg-blue-100 text-blue-800',
+        neutral: 'bg-gray-100 text-gray-800'
+      }
+    },
+    dot: {
+      base: 'h-2 w-2 rounded-full',
+      variants: {
+        success: 'bg-green-400',
+        warning: 'bg-yellow-400',
+        error: 'bg-red-400',
+        info: 'bg-blue-400',
+        neutral: 'bg-gray-400'
+      }
+    }
+  },
+  loading: {
+    spinner: 'animate-spin rounded-full border-2 border-gray-300 border-t-sky-500',
+    overlay: 'absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center'
   }
 } 

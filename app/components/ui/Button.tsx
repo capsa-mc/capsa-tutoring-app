@@ -13,7 +13,7 @@ interface ButtonProps {
 }
 
 const variantClasses = {
-  primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
+  primary: 'bg-sky-500 text-white hover:bg-sky-600 focus:ring-sky-500',
   secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
   danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
   ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500 border border-gray-300'

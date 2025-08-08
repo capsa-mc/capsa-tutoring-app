@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Group, Role, Status } from '@/types/database/schema'
 import { format } from 'date-fns'
+import { ThemedButton, StatusBadge } from '@/app/components'
 
 interface User {
   id: string
@@ -337,41 +338,25 @@ export default function UsersPage() {
           
           <div className="w-48">
             {hasSSLFiles ? (
-              <button
+              <ThemedButton
                 onClick={handleDisableSSL}
                 disabled={exportLoading}
-                className="w-full px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="danger"
+                loading={exportLoading}
+                className="w-full"
               >
-                {exportLoading ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Deleting SSL files...
-                  </span>
-                ) : (
-                  'Disable SSL Download'
-                )}
-              </button>
+                {exportLoading ? 'Deleting SSL files...' : 'Disable SSL Download'}
+              </ThemedButton>
             ) : (
-              <button
+              <ThemedButton
                 onClick={handleExportSSL}
                 disabled={exportLoading || !pdfFile}
-                className="w-full px-4 py-2 bg-sky-500 text-white rounded-md hover:bg-sky-600 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="primary"
+                loading={exportLoading}
+                className="w-full"
               >
-                {exportLoading ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Saving SSL data...
-                  </span>
-                ) : (
-                  'Enable SSL Download'
-                )}
-              </button>
+                {exportLoading ? 'Saving SSL data...' : 'Enable SSL Download'}
+              </ThemedButton>
             )}
           </div>
         </div>
@@ -530,9 +515,9 @@ export default function UsersPage() {
                             ))}
                           </select>
                         ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          <StatusBadge variant="info">
                             {user.group}
-                          </span>
+                          </StatusBadge>
                         )}
                       </div>
 
@@ -564,31 +549,31 @@ export default function UsersPage() {
                     
                     {/* Attendance Stats */}
                     <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                      <span className="inline-flex items-center px-2 py-1 rounded bg-green-50 text-green-700">
+                      <StatusBadge variant="success">
                         Present: {user.attendance_stats.present}
-                      </span>
-                      <span className="inline-flex items-center px-2 py-1 rounded bg-yellow-50 text-yellow-700">
+                      </StatusBadge>
+                      <StatusBadge variant="warning">
                         Excused: {user.attendance_stats.excused}
-                      </span>
-                      <span className="inline-flex items-center px-2 py-1 rounded bg-red-50 text-red-700">
+                      </StatusBadge>
+                      <StatusBadge variant="error">
                         Absent: {user.attendance_stats.absent}
-                      </span>
-                      <span className="inline-flex items-center px-2 py-1 rounded bg-orange-50 text-orange-700">
+                      </StatusBadge>
+                      <StatusBadge variant="warning">
                         Absent Score: {user.attendance_stats.absence_score}
-                      </span>
+                      </StatusBadge>
                     </div>
 
                     {/* Contact Info */}
                     <div className="mt-2 flex flex-wrap gap-2 text-xs">
                       {user.student_email && (
-                        <span className="inline-flex items-center px-2 py-1 rounded bg-blue-50 text-blue-700">
+                        <StatusBadge variant="info">
                           Student Email: {user.student_email}
-                        </span>
+                        </StatusBadge>
                       )}
                       {user.student_phone && (
-                        <span className="inline-flex items-center px-2 py-1 rounded bg-green-50 text-green-700">
+                        <StatusBadge variant="info">
                           Student Phone: {formatPhoneNumber(user.student_phone)}
-                        </span>
+                        </StatusBadge>
                       )}
                       {user.parent_email && (
                         <span className="inline-flex items-center px-2 py-1 rounded bg-purple-50 text-purple-700">
@@ -607,26 +592,29 @@ export default function UsersPage() {
                   <div className="flex items-center justify-end space-x-2">
                     {editingUserId === user.id ? (
                       <>
-                        <button
+                        <ThemedButton
                           onClick={handleSaveEdit}
-                          className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          variant="primary"
+                          size="sm"
                         >
                           Save
-                        </button>
-                        <button
+                        </ThemedButton>
+                        <ThemedButton
                           onClick={handleCancelEdit}
-                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          variant="ghost"
+                          size="sm"
                         >
                           Cancel
-                        </button>
+                        </ThemedButton>
                       </>
                     ) : (
-                      <button
+                      <ThemedButton
                         onClick={() => handleEditClick(user)}
-                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        variant="outline"
+                        size="sm"
                       >
                         Edit
-                      </button>
+                      </ThemedButton>
                     )}
                   </div>
                 </div>

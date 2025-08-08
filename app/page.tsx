@@ -20,13 +20,13 @@ export default function HomePage() {
             <div className={theme.button.group.responsive}>
               <Link
                 href="/login"
-                className={`${theme.button.primary.base} ${theme.button.primary.default}`}
+                className={`${theme.button.base} ${theme.button.variants.primary} ${theme.button.sizes.md}`}
               >
                 Sign In
               </Link>
               <a
                 href="/register"
-                className={`${theme.button.primary.base} ${theme.button.primary.outline}`}
+                className={`${theme.button.base} ${theme.button.variants.outline} ${theme.button.sizes.md}`}
               >
                 Get Started
               </a>
