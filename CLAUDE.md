@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build` - Build the application for production
 - `npm start` - Start production server
 - `npm run lint` - Run ESLint for code quality checks
+- `npx tsc --noEmit` - Type check without emitting files
 
 ## Tech Stack
 
@@ -49,6 +50,7 @@ This is a tutoring management application with the following core entities:
   - `database/schema.ts` - Database schema types and enums
 - `utils/` - Utility functions and tools
   - `ssl-generator/` - SSL certificate generation utilities
+- `middleware.ts` - Next.js middleware for route protection and auth
 
 ### Authentication & Authorization
 
