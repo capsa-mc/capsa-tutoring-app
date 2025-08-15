@@ -2,11 +2,11 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 
-export async function GET(request: Request) {
+export async function GET() {
   console.log('Ping endpoint called at:', new Date().toISOString())
   
   // Get headers for authentication
-  const headersList = headers()
+  const headersList = await headers()
   const authHeader = headersList.get('authorization')
   const cronSecret = headersList.get('x-vercel-cron-signature')
   
